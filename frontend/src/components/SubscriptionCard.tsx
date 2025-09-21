@@ -16,7 +16,7 @@ interface SubscriptionCardProps {
 }
 
 const SubscriptionCard = ({ subscription, settings, onArchive, onRestore, onDelete }: SubscriptionCardProps) => {
-  const { t, formatDate, formatRelativeToNow } = useI18n()
+  const { t, formatDate } = useI18n()
   const status = resolveStatus(subscription)
   const dueIn = daysUntil(subscription.endAt)
   const dueLabel =
@@ -51,7 +51,6 @@ const SubscriptionCard = ({ subscription, settings, onArchive, onRestore, onDele
             <span className="font-medium text-midnight">{formatDate(subscription.endAt)}</span>
             {dueLabel ? <span className="ml-2 text-xs uppercase tracking-wide text-midnight/60">{dueLabel}</span> : null}
           </dd>
-          <dd className="text-xs text-midnight/60">{formatRelativeToNow(subscription.endAt)}</dd>
         </dl>
         {subscription.category ? (
           <dl className="flex flex-col gap-1">
