@@ -234,7 +234,8 @@ export const useStore = create<StoreState>()(
       finishHydration: (persisted) => {
         const defaults = createDefaultSettings()
         const nowIso = new Date().toISOString()
-        const incoming = persisted?.subscriptions?.length ? persisted.subscriptions : undefined
+        const rawSubscriptions = persisted?.subscriptions
+        const incoming = Array.isArray(rawSubscriptions) ? rawSubscriptions : undefined
         const hydratedSubscriptions = (incoming ?? createDemoSubscriptions()).map((subscription) => {
           const id = subscription.id || createId()
           const createdAt = subscription.createdAt || nowIso
