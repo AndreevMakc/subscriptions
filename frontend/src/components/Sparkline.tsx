@@ -1,13 +1,15 @@
 import type { SparklinePoint } from '../utils/subscriptions'
-import { formatMonthLabel } from '../utils/format'
+import { useI18n } from '../i18n'
 
 interface SparklineProps {
   data: SparklinePoint[]
 }
 
 const Sparkline = ({ data }: SparklineProps) => {
+  const { t, formatMonthLabel } = useI18n()
+
   if (!data.length) {
-    return <p className="text-xs text-midnight/60">Add subscriptions to populate the sparkline.</p>
+    return <p className="text-xs text-midnight/60">{t('sparkline.empty')}</p>
   }
 
   const values = data.map((point) => point.total)
@@ -28,7 +30,7 @@ const Sparkline = ({ data }: SparklineProps) => {
 
   return (
     <div className="glass-card rounded-3xl p-6">
-      <p className="text-section accent-dot">12-month trail</p>
+      <p className="text-section accent-dot">{t('sparkline.title')}</p>
       <svg viewBox={`0 0 ${width} ${height}`} className="mt-3 h-24 w-full">
         <defs>
           <linearGradient id="spark-gradient" x1="0%" y1="0%" x2="0%" y2="100%">

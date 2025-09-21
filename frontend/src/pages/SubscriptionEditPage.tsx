@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import SubscriptionForm from '../components/SubscriptionForm'
 import EmptyState from '../components/EmptyState'
 import { selectSettings, selectSubscriptions, useStore } from '../store/useStore'
+import { useI18n } from '../i18n'
 
 const SubscriptionEditPage = () => {
   const { id } = useParams<{ id: string }>()
@@ -11,15 +12,16 @@ const SubscriptionEditPage = () => {
   const update = useStore((state) => state.updateSubscription)
   const pushToast = useStore((state) => state.pushToast)
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   const subscription = useMemo(() => subscriptions.find((item) => item.id === id), [subscriptions, id])
 
   if (!subscription) {
     return (
       <EmptyState
-        title="Subscription missing"
-        description="We couldn’t find that subscription. It may have been deleted."
-        actionLabel="Back to list"
+        title={t('editSubscription.missingTitle')}
+        description={t('editSubscription.missingDescription')}
+        actionLabel={t('editSubscription.back')}
         actionTo="/subscriptions"
       />
     )
@@ -27,21 +29,23 @@ const SubscriptionEditPage = () => {
 
   return (
     <div className="space-y-6">
-      <p className="text-section accent-dot">Edit subscription</p>
+      <p className="text-section accent-dot">{t('editSubscription.title')}</p>
       <SubscriptionForm
         subscription={subscription}
         settings={settings}
         onSubmit={(values) => {
           const updated = update(subscription.id, values)
           pushToast({
-            title: 'Updated',
-            description: `${updated?.name ?? subscription.name} refreshed.`,
+            title: t('editSubscription.toast.title'),
+            description: t('editSubscription.toast.description', {
+              name: updated?.name ?? subscription.name,
+            }),
             variant: 'success',
           })
           navigate('/subscriptions')
         }}
         onCancel={() => navigate(-1)}
-        submitLabel="Update subscription"
+        submitLabel={t('subscriptionForm.update')}
       />
     </div>
   )

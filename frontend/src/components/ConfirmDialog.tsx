@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useI18n } from '../i18n'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -15,11 +16,15 @@ const ConfirmDialog = ({
   open,
   title,
   description,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => {
+  const { t } = useI18n()
+  const resolvedConfirmLabel = confirmLabel ?? t('confirm.confirm')
+  const resolvedCancelLabel = cancelLabel ?? t('confirm.cancel')
+
   useEffect(() => {
     if (!open) return
     const handler = (event: KeyboardEvent) => {
@@ -44,14 +49,14 @@ const ConfirmDialog = ({
         {description ? <p className="text-sm text-midnight/70">{description}</p> : null}
         <div className="mt-6 flex justify-end gap-3">
           <button type="button" className="pill-button bg-white/70" onClick={onCancel}>
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             type="button"
             className="pill-button bg-accent text-white shadow-card hover:bg-accent/90"
             onClick={onConfirm}
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </button>
         </div>
       </div>

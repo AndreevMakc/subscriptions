@@ -1,29 +1,30 @@
 import { useNavigate } from 'react-router-dom'
 import SubscriptionForm from '../components/SubscriptionForm'
 import { selectSettings, useStore } from '../store/useStore'
+import { useI18n } from '../i18n'
 
 const SubscriptionNewPage = () => {
   const settings = useStore(selectSettings)
   const add = useStore((state) => state.addSubscription)
   const pushToast = useStore((state) => state.pushToast)
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   return (
     <div className="space-y-6">
-      <p className="text-section accent-dot">New subscription</p>
+      <p className="text-section accent-dot">{t('newSubscription.title')}</p>
       <SubscriptionForm
         settings={settings}
         onSubmit={(values) => {
           const created = add(values)
           pushToast({
-            title: 'Added',
-            description: `${created.name} is now tracked.`,
+            title: t('newSubscription.toast.title'),
+            description: t('newSubscription.toast.description', { name: created.name }),
             variant: 'success',
           })
           navigate('/subscriptions')
         }}
         onCancel={() => navigate(-1)}
-        submitLabel="Save subscription"
       />
     </div>
   )

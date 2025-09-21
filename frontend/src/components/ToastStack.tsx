@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import clsx from 'clsx'
 import type { ToastMessage, ToastVariant } from '../store/useStore'
 import { selectToasts, useStore } from '../store/useStore'
+import { useI18n } from '../i18n'
 
 const variantStyles: Record<ToastVariant, string> = {
   success: 'border-emerald-300/60 bg-emerald-100/90 text-emerald-900 shadow-card',
@@ -10,6 +11,7 @@ const variantStyles: Record<ToastVariant, string> = {
 }
 
 const ToastCard = ({ toast, onDismiss }: { toast: ToastMessage; onDismiss: (id: string) => void }) => {
+  const { t } = useI18n()
   useEffect(() => {
     const timer = window.setTimeout(() => onDismiss(toast.id), 6000)
     return () => window.clearTimeout(timer)
@@ -33,7 +35,7 @@ const ToastCard = ({ toast, onDismiss }: { toast: ToastMessage; onDismiss: (id: 
         className="focus-ring rounded-full border border-transparent bg-white/50 px-2 py-1 text-[11px] font-semibold uppercase text-midnight/70"
         onClick={() => onDismiss(toast.id)}
       >
-        Close
+        {t('toast.close')}
       </button>
     </div>
   )

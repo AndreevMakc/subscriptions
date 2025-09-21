@@ -4,6 +4,7 @@ import SubscriptionCard from '../components/SubscriptionCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { selectSettings, selectSubscriptions, useStore } from '../store/useStore'
+import { useI18n } from '../i18n'
 import {
   categoriesFrom,
   filterSubscriptions,
@@ -19,6 +20,7 @@ const SubscriptionsPage = () => {
   const archive = useStore((state) => state.archiveSubscription)
   const remove = useStore((state) => state.removeSubscription)
   const pushToast = useStore((state) => state.pushToast)
+  const { t } = useI18n()
 
   const [filters, setFilters] = useState<SubscriptionFilters>({})
   const [sort, setSort] = useState<SubscriptionSort>('nextDue')
@@ -34,13 +36,21 @@ const SubscriptionsPage = () => {
 
   const handleArchive = (id: string) => {
     archive(id)
-    pushToast({ title: 'Archived', description: 'Subscription moved to archive.', variant: 'info' })
+    pushToast({
+      title: t('subscriptions.toast.archived.title'),
+      description: t('subscriptions.toast.archived.description'),
+      variant: 'info',
+    })
   }
 
   const handleDelete = () => {
     if (!confirmId) return
     remove(confirmId)
-    pushToast({ title: 'Removed', description: 'Subscription deleted permanently.', variant: 'info' })
+    pushToast({
+      title: t('subscriptions.toast.removed.title'),
+      description: t('subscriptions.toast.removed.description'),
+      variant: 'info',
+    })
     setConfirmId(null)
   }
 
@@ -58,9 +68,9 @@ const SubscriptionsPage = () => {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="No subscriptions"
-          description="Adjust filters or add your first subscription to get started."
-          actionLabel="Add subscription"
+          title={t('subscriptions.emptyTitle')}
+          description={t('subscriptions.emptyDescription')}
+          actionLabel={t('subscriptions.emptyAction')}
           actionTo="/subscriptions/new"
         />
       ) : (
@@ -79,9 +89,9 @@ const SubscriptionsPage = () => {
 
       <ConfirmDialog
         open={Boolean(confirmId)}
-        title="Delete subscription?"
-        description="This action cannot be undone."
-        confirmLabel="Delete"
+        title={t('subscriptions.confirmDeleteTitle')}
+        description={t('subscriptions.confirmDeleteDescription')}
+        confirmLabel={t('subscriptions.confirmDeleteConfirm')}
         onCancel={() => setConfirmId(null)}
         onConfirm={handleDelete}
       />

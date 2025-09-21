@@ -4,12 +4,13 @@ import clsx from 'clsx'
 import { persistedStateSchema } from '../utils/validation'
 import { selectSettings, selectSubscriptions, useStore } from '../store/useStore'
 import type { PersistedState } from '../types'
+import { useI18n, type TranslationKey } from '../i18n'
 
-const navItems = [
-  { label: 'Dashboard', to: '/' },
-  { label: 'Subscriptions', to: '/subscriptions' },
-  { label: 'Archive', to: '/archive' },
-  { label: 'Settings', to: '/settings' },
+const navItems: { to: string; key: TranslationKey }[] = [
+  { to: '/', key: 'nav.dashboard' },
+  { to: '/subscriptions', key: 'nav.subscriptions' },
+  { to: '/archive', key: 'nav.archive' },
+  { to: '/settings', key: 'nav.settings' },
 ]
 
 const HeaderNav = () => {
@@ -20,6 +21,7 @@ const HeaderNav = () => {
   const recomputeStatuses = useStore((state) => state.recomputeStatuses)
   const pushToast = useStore((state) => state.pushToast)
   const location = useLocation()
+  const { t } = useI18n()
 
   const handleExport = () => {
     const data: PersistedState = {
@@ -36,8 +38,8 @@ const HeaderNav = () => {
     anchor.remove()
     URL.revokeObjectURL(url)
     pushToast({
-      title: 'Export ready',
-      description: 'Your subscriptions were exported as JSON.',
+      title: t('nav.exportReady.title'),
+      description: t('nav.exportReady.description'),
       variant: 'success',
     })
   }
@@ -57,15 +59,15 @@ const HeaderNav = () => {
       importData(data)
       recomputeStatuses()
       pushToast({
-        title: 'Import complete',
-        description: 'Subscriptions have been loaded from your file.',
+        title: t('nav.importComplete.title'),
+        description: t('nav.importComplete.description'),
         variant: 'success',
       })
     } catch (error) {
       console.error(error)
       pushToast({
-        title: 'Import failed',
-        description: 'We could not read that file. Check it is a valid SubsKeeper export.',
+        title: t('nav.importFailed.title'),
+        description: t('nav.importFailed.description'),
         variant: 'error',
       })
     } finally {
@@ -82,9 +84,7 @@ const HeaderNav = () => {
           </span>
           <span>
             <span className="block text-sm uppercase tracking-[0.4em] text-midnight/60">SubsKeeper</span>
-            <span className="block text-base font-semibold leading-tight text-midnight">
-              Track every recurring payment with ease
-            </span>
+            <span className="block text-base font-semibold leading-tight text-midnight">{t('nav.tagline')}</span>
           </span>
         </NavLink>
       </div>
@@ -104,23 +104,23 @@ const HeaderNav = () => {
             }
             end={item.to === '/'}
           >
-            {item.label}
+            {t(item.key)}
           </NavLink>
         ))}
       </nav>
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className="pill-button" onClick={handleImportClick}>
-          Import JSON
+          {t('nav.importJson')}
         </button>
         <button type="button" className="pill-button" onClick={handleExport}>
-          Export
+          {t('nav.export')}
         </button>
         <NavLink
           to={{ pathname: '/subscriptions/new', search: location.search }}
           className="pill-button bg-accent text-white shadow-card hover:bg-accent/90"
         >
-          + Add subscription
+          {t('nav.addSubscription')}
         </NavLink>
         <input
           ref={fileInputRef}
@@ -128,7 +128,7 @@ const HeaderNav = () => {
           accept="application/json"
           className="sr-only"
           onChange={handleImport}
-          aria-label="Import subscriptions from JSON"
+          aria-label={t('import.ariaLabel')}
         />
       </div>
     </header>

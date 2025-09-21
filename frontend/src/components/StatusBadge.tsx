@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import type { Status } from '../types'
-import { formatStatus } from '../utils/format'
+import { useI18n } from '../i18n'
 
 const statusStyles: Record<Status, string> = {
   active: 'bg-emerald-100 text-emerald-700 ring-emerald-300/70',
@@ -10,6 +10,7 @@ const statusStyles: Record<Status, string> = {
 }
 
 const StatusBadge = ({ status }: { status: Status }) => {
+  const { t } = useI18n()
   return (
     <span
       className={clsx(
@@ -18,7 +19,7 @@ const StatusBadge = ({ status }: { status: Status }) => {
       )}
     >
       <span className="h-2 w-2 rounded-full bg-current opacity-70" aria-hidden="true" />
-      {formatStatus(status)}
+      {t(`status.${status}`)}
     </span>
   )
 }

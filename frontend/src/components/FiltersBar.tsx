@@ -1,5 +1,6 @@
 import type { ChangeEvent } from 'react'
 import type { SubscriptionFilters, SubscriptionSort } from '../utils/subscriptions'
+import { useI18n } from '../i18n'
 
 interface FiltersBarProps {
   filters: SubscriptionFilters
@@ -20,6 +21,7 @@ const FiltersBar = ({
   onSortChange,
   onClear,
 }: FiltersBarProps) => {
+  const { t } = useI18n()
   const handleInputChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = event.target
     if (name === 'minPrice' || name === 'maxPrice') {
@@ -34,57 +36,57 @@ const FiltersBar = ({
     <section className="glass-card flex flex-col gap-4 rounded-3xl p-5 text-sm shadow-card">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <label className="flex-1">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Search</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('filters.searchLabel')}</span>
           <input
             type="search"
             name="text"
             value={filters.text ?? ''}
             onChange={handleInputChange}
-            placeholder="Name, vendor, notes..."
+            placeholder={t('filters.searchPlaceholder')}
             className="mt-1 w-full rounded-full border border-white/60 bg-white/70 px-4 py-2 text-sm shadow-inner-soft focus-ring"
           />
         </label>
         <label className="md:w-56">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Sort</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('filters.sortLabel')}</span>
           <select
             value={sort}
             onChange={(event) => onSortChange(event.target.value as SubscriptionSort)}
             className="mt-1 w-full rounded-full border border-white/60 bg-white/70 px-4 py-2 text-sm focus-ring"
           >
-            <option value="nextDue">Next due</option>
-            <option value="priceDesc">Price high → low</option>
-            <option value="priceAsc">Price low → high</option>
-            <option value="name">Alphabetical</option>
-            <option value="createdAt">Recently added</option>
+            <option value="nextDue">{t('filters.sort.nextDue')}</option>
+            <option value="priceDesc">{t('filters.sort.priceDesc')}</option>
+            <option value="priceAsc">{t('filters.sort.priceAsc')}</option>
+            <option value="name">{t('filters.sort.name')}</option>
+            <option value="createdAt">{t('filters.sort.createdAt')}</option>
           </select>
         </label>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Status</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('filters.statusLabel')}</span>
           <select
             name="status"
             value={filters.status ?? 'all'}
             onChange={handleInputChange}
             className="rounded-full border border-white/60 bg-white/70 px-4 py-2 text-sm focus-ring"
           >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="canceled">Canceled</option>
-            <option value="expired">Expired</option>
+            <option value="all">{t('filters.status.all')}</option>
+            <option value="active">{t('status.active')}</option>
+            <option value="canceled">{t('status.canceled')}</option>
+            <option value="expired">{t('status.expired')}</option>
           </select>
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Category</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('filters.categoryLabel')}</span>
           <select
             name="category"
             value={filters.category ?? ''}
             onChange={handleInputChange}
             className="rounded-full border border-white/60 bg-white/70 px-4 py-2 text-sm focus-ring"
           >
-            <option value="">Any</option>
+            <option value="">{t('filters.category.any')}</option>
             {categories.map((category) => (
               <option key={category} value={category}>
                 {category}
@@ -94,14 +96,14 @@ const FiltersBar = ({
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Vendor</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('filters.vendorLabel')}</span>
           <select
             name="vendor"
             value={filters.vendor ?? ''}
             onChange={handleInputChange}
             className="rounded-full border border-white/60 bg-white/70 px-4 py-2 text-sm focus-ring"
           >
-            <option value="">Any</option>
+            <option value="">{t('filters.vendor.any')}</option>
             {vendors.map((vendor) => (
               <option key={vendor} value={vendor}>
                 {vendor}
@@ -112,7 +114,7 @@ const FiltersBar = ({
 
         <div className="grid grid-cols-2 gap-2">
           <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Min price</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('filters.minPrice')}</span>
             <input
               type="number"
               name="minPrice"
@@ -124,7 +126,7 @@ const FiltersBar = ({
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Max price</span>
+            <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('filters.maxPrice')}</span>
             <input
               type="number"
               name="maxPrice"
@@ -140,7 +142,7 @@ const FiltersBar = ({
 
       <div className="flex justify-end">
         <button type="button" className="pill-button" onClick={onClear}>
-          Reset filters
+          {t('filters.reset')}
         </button>
       </div>
     </section>

@@ -6,6 +6,7 @@ import { SUPPORTED_CURRENCIES } from '../utils/constants'
 import { subscriptionFormSchema, type SubscriptionFormValues } from '../utils/validation'
 import { fromDateInputValue, toDateInputValue } from '../utils/dates'
 import type { SubscriptionDraft } from '../store/useStore'
+import { useI18n } from '../i18n'
 
 interface SubscriptionFormProps {
   subscription?: Subscription
@@ -15,13 +16,9 @@ interface SubscriptionFormProps {
   submitLabel?: string
 }
 
-const SubscriptionForm = ({
-  subscription,
-  settings,
-  onSubmit,
-  onCancel,
-  submitLabel = 'Save subscription',
-}: SubscriptionFormProps) => {
+const SubscriptionForm = ({ subscription, settings, onSubmit, onCancel, submitLabel }: SubscriptionFormProps) => {
+  const { t, locale } = useI18n()
+  const resolvedSubmitLabel = submitLabel ?? t('subscriptionForm.save')
   const defaultValues = useMemo<SubscriptionFormValues>(() => {
     if (!subscription) {
       return {
@@ -61,6 +58,7 @@ const SubscriptionForm = ({
 
   const currentStatus = watch('status')
   const currentName = watch('name')
+  const displayName = currentName || t('subscriptionForm.newName')
 
   const handleFormSubmit = handleSubmit((values) => {
     const endAtIso =
@@ -87,18 +85,18 @@ const SubscriptionForm = ({
     <form onSubmit={handleFormSubmit} className="glass-card flex flex-col gap-6 rounded-3xl p-6 shadow-card">
       <div className="grid gap-4 md:grid-cols-2">
         <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Name</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('subscriptionForm.name')}</span>
           <input
             {...register('name')}
             type="text"
             className="rounded-full border border-white/60 bg-white/80 px-4 py-2 focus-ring"
-            placeholder="Subscription name"
+            placeholder={t('subscriptionForm.namePlaceholder')}
           />
           {errors.name ? <span className="text-xs text-rose-500">{errors.name.message}</span> : null}
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Price</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('subscriptionForm.price')}</span>
           <div className="flex items-center gap-2">
             <input
               {...register('price', { valueAsNumber: true })}
@@ -106,7 +104,7 @@ const SubscriptionForm = ({
               min={0}
               step={0.01}
               className="w-full rounded-full border border-white/60 bg-white/80 px-4 py-2 focus-ring"
-              placeholder="0.00"
+              placeholder={t('subscriptionForm.pricePlaceholder')}
             />
             <select
               {...register('currency')}
@@ -123,7 +121,7 @@ const SubscriptionForm = ({
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Paid through</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('subscriptionForm.paidThrough')}</span>
           <input
             {...register('endAt')}
             type="date"
@@ -133,44 +131,44 @@ const SubscriptionForm = ({
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Status</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('subscriptionForm.status')}</span>
           <select
             {...register('status')}
             className="rounded-full border border-white/60 bg-white/80 px-4 py-2 focus-ring"
           >
-            <option value="active">Active</option>
-            <option value="canceled">Canceled</option>
-            <option value="expired">Expired</option>
+            <option value="active">{t('status.active')}</option>
+            <option value="canceled">{t('status.canceled')}</option>
+            <option value="expired">{t('status.expired')}</option>
           </select>
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Vendor</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('subscriptionForm.vendor')}</span>
           <input
             {...register('vendor')}
             type="text"
-            placeholder="Company"
+            placeholder={t('subscriptionForm.vendorPlaceholder')}
             className="rounded-full border border-white/60 bg-white/80 px-4 py-2 focus-ring"
           />
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Category</span>
+          <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('subscriptionForm.category')}</span>
           <input
             {...register('category')}
             type="text"
-            placeholder="Entertainment, work..."
+            placeholder={t('subscriptionForm.categoryPlaceholder')}
             className="rounded-full border border-white/60 bg-white/80 px-4 py-2 focus-ring"
           />
         </label>
       </div>
 
       <label className="flex flex-col gap-1">
-        <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">Notes</span>
+        <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('subscriptionForm.notes')}</span>
         <textarea
           {...register('notes')}
           rows={4}
-          placeholder="Anything worth remembering?"
+          placeholder={t('subscriptionForm.notesPlaceholder')}
           className="rounded-3xl border border-white/60 bg-white/80 px-4 py-3 focus-ring"
         />
       </label>
@@ -178,20 +176,24 @@ const SubscriptionForm = ({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-xs text-midnight/60">
           <p>
-            <span className="font-semibold text-midnight">{currentName || 'New subscription'}</span> is currently set as{' '}
-            <span className="uppercase tracking-[0.2em] text-midnight/70">{currentStatus}</span>.
+            {locale === 'ru' ? 'Сейчас ' : null}
+            <span className="font-semibold text-midnight">
+              {locale === 'ru' ? `«${displayName}»` : displayName}
+            </span>{' '}
+            {t('subscriptionForm.statusIndicator')}{' '}
+            <span className="uppercase tracking-[0.2em] text-midnight/70">{t(`status.${currentStatus}`)}</span>.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button type="button" className="pill-button" onClick={onCancel}>
-            Cancel
+            {t('subscriptionForm.cancel')}
           </button>
           <button
             type="submit"
             className="pill-button bg-accent text-white shadow-card hover:bg-accent/90"
             disabled={isSubmitting || !isDirty}
           >
-            {submitLabel}
+            {resolvedSubmitLabel}
           </button>
         </div>
       </div>
