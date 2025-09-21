@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #faf4ff;
+}
+
+@layer base {
+  body {
+    @apply min-h-screen bg-transparent text-slate-700 antialiased;
+  }
+
+  ::selection {
+    @apply bg-accent/20;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply rounded-3xl border border-white/50 bg-white/60 shadow-card backdrop-blur-xl transition-shadow duration-300 ease-out;
+  }
+
+  .glass-card:hover {
+    @apply shadow-card-soft;
+  }
+
+  .pill-button {
+    @apply rounded-full bg-white/80 px-5 py-2 text-sm font-medium text-midnight shadow-inner-sm shadow-card-soft transition-all duration-300 ease-out;
+  }
+
+  .pill-button:disabled {
+    @apply cursor-not-allowed opacity-60 shadow-inner-sm;
+  }
+
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-section text-slate-500 flex items-center gap-1;
+  }
+
+  .section-label::before {
+    content: '';
+    @apply h-2 w-2 rounded-full bg-accent/70 shadow-inner-sm;
+  }
+
+  .input-field {
+    @apply rounded-2xl border border-white/60 bg-white/70 px-4 py-3 text-sm text-midnight shadow-inner-sm transition focus:border-accent/50 focus:outline-none focus:ring-2 focus:ring-accent/30;
+  }
+
+  .input-field:disabled {
+    @apply cursor-not-allowed opacity-60;
+  }
+
+  .card-divider {
+    @apply h-px bg-white/60;
+  }
+}
+
+@layer utilities {
+  .sparkline-gradient {
+    background: linear-gradient(135deg, rgba(240, 100, 140, 0.16), rgba(156, 204, 255, 0.12));
+  }
+}
