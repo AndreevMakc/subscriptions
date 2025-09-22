@@ -1,6 +1,15 @@
 import clsx from 'clsx'
+import type { SVGProps } from 'react'
+import { ArchiveBoxIcon, CheckCircleIcon, ClockIcon, NoSymbolIcon } from '@heroicons/react/20/solid'
 import type { Status } from '../types'
 import { useI18n } from '../i18n'
+
+const statusIcons = {
+  active: CheckCircleIcon,
+  canceled: NoSymbolIcon,
+  expired: ClockIcon,
+  archived: ArchiveBoxIcon,
+} as const satisfies Record<Status, (props: SVGProps<SVGSVGElement>) => JSX.Element>
 
 const statusStyles: Record<Status, string> = {
   active: 'bg-emerald-100 text-emerald-700 ring-emerald-300/70',
@@ -11,14 +20,15 @@ const statusStyles: Record<Status, string> = {
 
 const StatusBadge = ({ status }: { status: Status }) => {
   const { t } = useI18n()
+  const Icon = statusIcons[status]
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ring-1 ring-inset',
+        'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ring-1 ring-inset',
         statusStyles[status],
       )}
     >
-      <span className="h-2 w-2 rounded-full bg-current opacity-70" aria-hidden="true" />
+      <Icon aria-hidden="true" className="h-3.5 w-3.5" />
       {t(`status.${status}`)}
     </span>
   )

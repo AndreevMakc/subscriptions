@@ -1,23 +1,28 @@
-import { useRef, type SVGProps } from 'react'
+import { useEffect, useRef, useState, type SVGProps } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import clsx from 'clsx'
+import {
+  ArchiveBoxIcon,
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  Bars3Icon,
+  Cog6ToothIcon,
+  HomeIcon,
+  PlusIcon,
+  Squares2X2Icon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
+import { ZodError } from 'zod'
 import { persistedStateSchema } from '../utils/validation'
 import { selectSettings, selectSubscriptions, useStore } from '../store/useStore'
 import type { PersistedState } from '../types'
 import { useI18n, type TranslationKey } from '../i18n'
 
-const navItems: { to: string; key: TranslationKey }[] = [
-  { to: '/', key: 'nav.dashboard' },
-  { to: '/subscriptions', key: 'nav.subscriptions' },
-  { to: '/archive', key: 'nav.archive' },
+const navItems: { to: string; key: TranslationKey; Icon: (props: SVGProps<SVGSVGElement>) => JSX.Element }[] = [
+  { to: '/', key: 'nav.dashboard', Icon: HomeIcon },
+  { to: '/subscriptions', key: 'nav.subscriptions', Icon: Squares2X2Icon },
+  { to: '/archive', key: 'nav.archive', Icon: ArchiveBoxIcon },
 ]
-
-const SettingsIcon = (props: SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-    <path d="M19.14 12.936c.036-.303.06-.607.06-.936 0-.33-.024-.633-.07-.936l2.03-1.58a.5.5 0 00.11-.642l-1.924-3.33a.5.5 0 00-.607-.22l-2.39.96a7.032 7.032 0 00-1.62-.936l-.36-2.54a.5.5 0 00-.495-.42h-3.848a.5.5 0 00-.495.42l-.36 2.54a7.02 7.02 0 00-1.62.936l-2.39-.96a.5.5 0 00-.607.22L2.72 8.944a.5.5 0 00.11.642l2.03 1.58c-.046.303-.07.606-.07.936 0 .33.024.633.07.936l-2.03 1.58a.5.5 0 00-.11.642l1.924 3.33a.5.5 0 00.607.22l2.39-.96c.5.39 1.05.71 1.62.936l.36 2.54a.5.5 0 00.495.42h3.848a.5.5 0 00.495-.42l.36-2.54a7.032 7.032 0 001.62-.936l2.39.96a.5.5 0 00.607-.22l1.924-3.33a.5.5 0 00-.11-.642z" />
-    <path d="M12 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" />
-  </svg>
-)
 
 const HeaderNav = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -29,6 +34,22 @@ const HeaderNav = () => {
   const location = useLocation()
   const { t, locale } = useI18n()
   const isRussian = locale === 'ru'
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mobileMenuOpen])
+
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [location.pathname, location.search])
 
   const handleExport = () => {
     const data: PersistedState = {
@@ -52,6 +73,7 @@ const HeaderNav = () => {
   }
 
   const handleImportClick = () => {
+    setMobileMenuOpen(false)
     fileInputRef.current?.click()
   }
 
@@ -61,6 +83,9 @@ const HeaderNav = () => {
 
     try {
       const text = await file.text()
+      if (!text.trim()) {
+        throw new Error('SUBSKEEPER_EMPTY_FILE')
+      }
       const parsed = JSON.parse(text)
       const data = persistedStateSchema.parse(parsed) as PersistedState
       importData(data)
@@ -72,9 +97,17 @@ const HeaderNav = () => {
       })
     } catch (error) {
       console.error(error)
+      let description = t('nav.importFailed.description')
+      if (error instanceof SyntaxError) {
+        description = t('nav.importFailed.invalidJson')
+      } else if (error instanceof ZodError) {
+        description = t('nav.importFailed.invalidStructure')
+      } else if (error instanceof Error && error.message === 'SUBSKEEPER_EMPTY_FILE') {
+        description = t('nav.importFailed.empty')
+      }
       pushToast({
         title: t('nav.importFailed.title'),
-        description: t('nav.importFailed.description'),
+        description,
         variant: 'error',
       })
     } finally {
@@ -85,9 +118,17 @@ const HeaderNav = () => {
   const addSubscriptionLabel = t('nav.addSubscription')
   const addSubscriptionText = isRussian ? 'Добавить' : addSubscriptionLabel
 
+  const desktopNavLinkClasses = ({ isActive }: { isActive: boolean }) =>
+    clsx(
+      'pill-button flex items-center gap-2 text-sm font-medium transition md:text-base',
+      'whitespace-normal break-words text-center',
+      isRussian ? 'px-3 py-2' : 'px-4 py-2',
+      isActive ? 'bg-white/80 text-midnight shadow-card' : 'bg-white/40 text-midnight/80 hover:text-midnight',
+    )
+
   return (
-    <header className="glass-card mb-8 flex flex-col gap-6 rounded-card border border-white/60 bg-white/70 p-6 shadow-card backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-      <div>
+    <header className="glass-card mb-8 flex flex-col gap-4 rounded-card border border-white/60 bg-white/70 p-6 shadow-card backdrop-blur-xl md:gap-6">
+      <div className="flex items-center justify-between gap-4">
         <NavLink to="/" className="flex items-center gap-3 text-lg font-semibold tracking-wide">
           <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-midnight shadow-inner-soft">
             SK
@@ -97,98 +138,182 @@ const HeaderNav = () => {
             <span className="block text-base font-semibold leading-tight text-midnight">{t('nav.tagline')}</span>
           </span>
         </NavLink>
+        <div className="flex items-center gap-2 md:hidden">
+          <NavLink
+            to={{ pathname: '/subscriptions/new', search: location.search }}
+            className="pill-button flex h-10 w-10 items-center justify-center bg-accent text-white shadow-card hover:bg-accent/90"
+            aria-label={addSubscriptionLabel}
+          >
+            <PlusIcon aria-hidden="true" className="h-5 w-5" />
+          </NavLink>
+          <button
+            type="button"
+            className="pill-button flex h-10 w-10 items-center justify-center bg-white/70 text-midnight shadow-inner-soft"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation"
+            aria-label={mobileMenuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
+          >
+            {mobileMenuOpen ? <XMarkIcon aria-hidden="true" className="h-6 w-6" /> : <Bars3Icon aria-hidden="true" className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
-      <div
-        className={clsx(
-          'flex w-full min-w-0 flex-nowrap items-center overflow-x-auto sm:w-auto sm:justify-end',
-          isRussian ? 'gap-2 sm:gap-3' : 'gap-3',
-        )}
-      >
-        <nav className={clsx('flex flex-nowrap items-center flex-shrink-0', isRussian ? 'gap-2' : 'gap-3')}>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                clsx(
-                  'pill-button whitespace-nowrap font-medium transition flex-shrink-0',
-                  isRussian ? 'px-3 py-2' : 'px-4 py-2',
-                  isActive
-                    ? 'bg-white/80 shadow-card text-midnight'
-                    : 'bg-white/40 text-midnight/80 hover:text-midnight',
-                )
-              }
-              end={item.to === '/'}
-            >
-              {t(item.key)}
+      <div className="hidden w-full flex-wrap items-center justify-end gap-3 md:flex md:gap-4">
+        <nav className={clsx('flex flex-wrap items-center gap-3', isRussian && 'gap-2')}>
+          {navItems.map(({ to, key, Icon }) => (
+            <NavLink key={to} to={to} className={desktopNavLinkClasses} end={to === '/'}>
+              <Icon aria-hidden="true" className="h-5 w-5" />
+              <span className="leading-tight">{t(key)}</span>
             </NavLink>
           ))}
         </nav>
-
-        <div
-          className={clsx(
-            'flex flex-nowrap items-center flex-shrink-0',
-            isRussian ? 'gap-2' : 'gap-3',
-          )}
-        >
+        <div className={clsx('flex flex-wrap items-center gap-3', isRussian && 'gap-2')}>
           <button
             type="button"
             className={clsx(
-              'pill-button whitespace-nowrap flex-shrink-0',
+              'pill-button flex items-center gap-2 text-sm font-medium transition md:text-base',
               isRussian ? 'px-3 py-2' : 'px-4 py-2',
+              'bg-white/40 text-midnight/80 hover:text-midnight',
             )}
             onClick={handleImportClick}
+            aria-label={t('import.ariaLabel')}
           >
-            {t('nav.importJson')}
+            <ArrowUpTrayIcon aria-hidden="true" className="h-5 w-5" />
+            <span className="leading-tight">{t('nav.importJson')}</span>
           </button>
           <button
             type="button"
             className={clsx(
-              'pill-button whitespace-nowrap flex-shrink-0',
+              'pill-button flex items-center gap-2 text-sm font-medium transition md:text-base',
               isRussian ? 'px-3 py-2' : 'px-4 py-2',
+              'bg-white/40 text-midnight/80 hover:text-midnight',
             )}
             onClick={handleExport}
           >
-            {t('nav.export')}
+            <ArrowDownTrayIcon aria-hidden="true" className="h-5 w-5" />
+            <span className="leading-tight">{t('nav.export')}</span>
           </button>
           <NavLink
             to={{ pathname: '/subscriptions/new', search: location.search }}
             className={clsx(
-              'pill-button whitespace-nowrap bg-accent text-white shadow-card hover:bg-accent/90 flex-shrink-0',
+              'pill-button flex items-center gap-2 bg-accent text-sm font-medium text-white shadow-card transition hover:bg-accent/90 md:text-base',
               isRussian ? 'px-3 py-2' : 'px-4 py-2',
             )}
             aria-label={addSubscriptionLabel}
           >
-            <span aria-hidden={isRussian}>{addSubscriptionText}</span>
+            <PlusIcon aria-hidden="true" className="h-5 w-5" />
+            <span aria-hidden={isRussian} className="leading-tight">
+              {addSubscriptionText}
+            </span>
             {isRussian && <span className="sr-only">{addSubscriptionLabel}</span>}
           </NavLink>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json"
-            className="sr-only"
-            onChange={handleImport}
-            aria-label={t('import.ariaLabel')}
-          />
         </div>
-
         <NavLink
           to="/settings"
           className={({ isActive }) =>
             clsx(
-              'pill-button p-2 text-midnight transition flex-shrink-0',
-              isActive
-                ? 'bg-white/80 shadow-card text-midnight'
-                : 'bg-white/40 text-midnight/80 hover:text-midnight',
+              'pill-button flex h-10 w-10 items-center justify-center text-midnight transition',
+              isActive ? 'bg-white/80 shadow-card text-midnight' : 'bg-white/40 text-midnight/80 hover:text-midnight',
             )
           }
           aria-label={t('nav.settings')}
         >
-          <SettingsIcon className="h-5 w-5" />
-          <span className="sr-only">{t('nav.settings')}</span>
+          <Cog6ToothIcon aria-hidden="true" className="h-5 w-5" />
         </NavLink>
       </div>
+
+      {mobileMenuOpen ? (
+        <div className="fixed inset-0 z-50 flex justify-end bg-midnight/30 backdrop-blur-sm md:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <div
+            id="mobile-navigation"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('nav.menuTitle')}
+            className="glass-card m-4 flex w-full max-w-xs flex-col gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-card"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold uppercase tracking-[0.3em] text-midnight/60">SubsKeeper</span>
+              <button
+                type="button"
+                className="pill-button flex h-10 w-10 items-center justify-center bg-white/70 text-midnight hover:bg-white"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label={t('nav.closeMenu')}
+              >
+                <XMarkIcon aria-hidden="true" className="h-5 w-5" />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-2">
+              {navItems.map(({ to, key, Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    clsx(
+                      'pill-button flex items-center gap-3 px-4 py-3 text-sm font-medium',
+                      isActive ? 'bg-white/80 text-midnight shadow-card' : 'bg-white/50 text-midnight/80 hover:text-midnight',
+                    )
+                  }
+                  end={to === '/'}
+                >
+                  <Icon aria-hidden="true" className="h-5 w-5" />
+                  <span className="text-left leading-snug">{t(key)}</span>
+                </NavLink>
+              ))}
+            </nav>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                className="pill-button flex items-center gap-3 bg-white/60 px-4 py-3 text-sm font-medium text-midnight/80 hover:text-midnight"
+                onClick={handleImportClick}
+                aria-label={t('import.ariaLabel')}
+              >
+                <ArrowUpTrayIcon aria-hidden="true" className="h-5 w-5" />
+                <span className="text-left leading-snug">{t('nav.importJson')}</span>
+              </button>
+              <button
+                type="button"
+                className="pill-button flex items-center gap-3 bg-white/60 px-4 py-3 text-sm font-medium text-midnight/80 hover:text-midnight"
+                onClick={handleExport}
+              >
+                <ArrowDownTrayIcon aria-hidden="true" className="h-5 w-5" />
+                <span className="text-left leading-snug">{t('nav.export')}</span>
+              </button>
+              <NavLink
+                to={{ pathname: '/subscriptions/new', search: location.search }}
+                className="pill-button flex items-center gap-3 bg-accent px-4 py-3 text-sm font-semibold text-white shadow-card hover:bg-accent/90"
+                aria-label={addSubscriptionLabel}
+              >
+                <PlusIcon aria-hidden="true" className="h-5 w-5" />
+                <span>{addSubscriptionLabel}</span>
+              </NavLink>
+            </div>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                clsx(
+                  'pill-button flex items-center gap-3 px-4 py-3 text-sm font-medium',
+                  isActive ? 'bg-white/80 text-midnight shadow-card' : 'bg-white/50 text-midnight/80 hover:text-midnight',
+                )
+              }
+              aria-label={t('nav.settings')}
+            >
+              <Cog6ToothIcon aria-hidden="true" className="h-5 w-5" />
+              <span className="text-left leading-snug">{t('nav.settings')}</span>
+            </NavLink>
+          </div>
+        </div>
+      ) : null}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json"
+        className="sr-only"
+        onChange={handleImport}
+        aria-label={t('import.ariaLabel')}
+      />
     </header>
   )
 }
