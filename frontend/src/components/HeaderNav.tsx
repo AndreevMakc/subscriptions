@@ -35,6 +35,10 @@ const HeaderNav = () => {
   const { t, locale } = useI18n()
   const isRussian = locale === 'ru'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const desktopTextClass = isRussian
+    ? 'text-sm leading-tight xl:text-base'
+    : 'text-[13px] leading-tight xl:text-sm 2xl:text-base'
+  const desktopPaddingClass = isRussian ? 'px-3 py-2' : 'px-3.5 py-2'
 
   useEffect(() => {
     if (!mobileMenuOpen) return
@@ -120,9 +124,10 @@ const HeaderNav = () => {
 
   const desktopNavLinkClasses = ({ isActive }: { isActive: boolean }) =>
     clsx(
-      'pill-button flex items-center gap-2 text-sm font-medium transition md:text-base',
-      'whitespace-normal break-words text-center',
-      isRussian ? 'px-3 py-2' : 'px-4 py-2',
+      'pill-button flex items-center gap-2 font-medium transition',
+      desktopTextClass,
+      'whitespace-nowrap text-center',
+      desktopPaddingClass,
       isActive ? 'bg-white/80 text-midnight shadow-card' : 'bg-white/40 text-midnight/80 hover:text-midnight',
     )
 
@@ -138,7 +143,7 @@ const HeaderNav = () => {
             <span className="block text-base font-semibold leading-tight text-midnight">{t('nav.tagline')}</span>
           </span>
         </NavLink>
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <NavLink
             to={{ pathname: '/subscriptions/new', search: location.search }}
             className="pill-button flex h-10 w-10 items-center justify-center bg-accent text-white shadow-card hover:bg-accent/90"
@@ -159,51 +164,54 @@ const HeaderNav = () => {
         </div>
       </div>
 
-      <div className="hidden w-full flex-wrap items-center justify-end gap-3 md:flex md:gap-4">
-        <nav className={clsx('flex flex-wrap items-center gap-3', isRussian && 'gap-2')}>
+      <div className="hidden w-full items-center justify-end gap-3 lg:flex lg:gap-4">
+        <nav className="flex flex-nowrap items-center gap-2.5">
           {navItems.map(({ to, key, Icon }) => (
             <NavLink key={to} to={to} className={desktopNavLinkClasses} end={to === '/'}>
-              <Icon aria-hidden="true" className="h-5 w-5" />
-              <span className="leading-tight">{t(key)}</span>
+              <Icon aria-hidden="true" className="h-5 w-5 shrink-0" />
+              <span className="whitespace-nowrap">{t(key)}</span>
             </NavLink>
           ))}
         </nav>
-        <div className={clsx('flex flex-wrap items-center gap-3', isRussian && 'gap-2')}>
+        <div className="flex flex-nowrap items-center gap-2.5">
           <button
             type="button"
             className={clsx(
-              'pill-button flex items-center gap-2 text-sm font-medium transition md:text-base',
-              isRussian ? 'px-3 py-2' : 'px-4 py-2',
+              'pill-button flex items-center gap-2 font-medium transition',
+              desktopTextClass,
+              desktopPaddingClass,
               'bg-white/40 text-midnight/80 hover:text-midnight',
             )}
             onClick={handleImportClick}
             aria-label={t('import.ariaLabel')}
           >
-            <ArrowUpTrayIcon aria-hidden="true" className="h-5 w-5" />
-            <span className="leading-tight">{t('nav.importJson')}</span>
+            <ArrowUpTrayIcon aria-hidden="true" className="h-5 w-5 shrink-0" />
+            <span className="whitespace-nowrap">{t('nav.importJson')}</span>
           </button>
           <button
             type="button"
             className={clsx(
-              'pill-button flex items-center gap-2 text-sm font-medium transition md:text-base',
-              isRussian ? 'px-3 py-2' : 'px-4 py-2',
+              'pill-button flex items-center gap-2 font-medium transition',
+              desktopTextClass,
+              desktopPaddingClass,
               'bg-white/40 text-midnight/80 hover:text-midnight',
             )}
             onClick={handleExport}
           >
-            <ArrowDownTrayIcon aria-hidden="true" className="h-5 w-5" />
-            <span className="leading-tight">{t('nav.export')}</span>
+            <ArrowDownTrayIcon aria-hidden="true" className="h-5 w-5 shrink-0" />
+            <span className="whitespace-nowrap">{t('nav.export')}</span>
           </button>
           <NavLink
             to={{ pathname: '/subscriptions/new', search: location.search }}
             className={clsx(
-              'pill-button flex items-center gap-2 bg-accent text-sm font-medium text-white shadow-card transition hover:bg-accent/90 md:text-base',
-              isRussian ? 'px-3 py-2' : 'px-4 py-2',
+              'pill-button flex items-center gap-2 bg-accent font-medium text-white shadow-card transition hover:bg-accent/90',
+              desktopTextClass,
+              desktopPaddingClass,
             )}
             aria-label={addSubscriptionLabel}
           >
-            <PlusIcon aria-hidden="true" className="h-5 w-5" />
-            <span aria-hidden={isRussian} className="leading-tight">
+            <PlusIcon aria-hidden="true" className="h-5 w-5 shrink-0" />
+            <span aria-hidden={isRussian} className="whitespace-nowrap">
               {addSubscriptionText}
             </span>
             {isRussian && <span className="sr-only">{addSubscriptionLabel}</span>}
@@ -213,19 +221,20 @@ const HeaderNav = () => {
           to="/settings"
           className={({ isActive }) =>
             clsx(
-              'pill-button flex items-center gap-2 text-sm font-medium text-white shadow-card transition md:text-base',
-              isRussian ? 'px-3 py-2' : 'px-4 py-2',
+              'pill-button flex items-center gap-2 font-medium text-white shadow-card transition',
+              desktopTextClass,
+              desktopPaddingClass,
               isActive ? 'bg-accent/90' : 'bg-accent hover:bg-accent/90',
             )
           }
         >
-          <Cog6ToothIcon aria-hidden="true" className="h-5 w-5" />
-          <span className="leading-tight">{t('nav.settings')}</span>
+          <Cog6ToothIcon aria-hidden="true" className="h-5 w-5 shrink-0" />
+          <span className="whitespace-nowrap">{t('nav.settings')}</span>
         </NavLink>
       </div>
 
       {mobileMenuOpen ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-midnight/30 backdrop-blur-sm md:hidden" onClick={() => setMobileMenuOpen(false)}>
+        <div className="fixed inset-0 z-50 flex justify-end bg-midnight/30 backdrop-blur-sm lg:hidden" onClick={() => setMobileMenuOpen(false)}>
           <div
             id="mobile-navigation"
             role="dialog"
