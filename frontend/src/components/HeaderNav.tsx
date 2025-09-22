@@ -213,13 +213,14 @@ const HeaderNav = () => {
           to="/settings"
           className={({ isActive }) =>
             clsx(
-              'pill-button flex h-10 w-10 items-center justify-center text-midnight transition',
-              isActive ? 'bg-white/80 shadow-card text-midnight' : 'bg-white/40 text-midnight/80 hover:text-midnight',
+              'pill-button flex items-center gap-2 text-sm font-medium text-white shadow-card transition md:text-base',
+              isRussian ? 'px-3 py-2' : 'px-4 py-2',
+              isActive ? 'bg-accent/90' : 'bg-accent hover:bg-accent/90',
             )
           }
-          aria-label={t('nav.settings')}
         >
           <Cog6ToothIcon aria-hidden="true" className="h-5 w-5" />
+          <span className="leading-tight">{t('nav.settings')}</span>
         </NavLink>
       </div>
 
@@ -293,11 +294,10 @@ const HeaderNav = () => {
               to="/settings"
               className={({ isActive }) =>
                 clsx(
-                  'pill-button flex items-center gap-3 px-4 py-3 text-sm font-medium',
-                  isActive ? 'bg-white/80 text-midnight shadow-card' : 'bg-white/50 text-midnight/80 hover:text-midnight',
+                  'pill-button flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white shadow-card transition',
+                  isActive ? 'bg-accent/90' : 'bg-accent hover:bg-accent/90',
                 )
               }
-              aria-label={t('nav.settings')}
             >
               <Cog6ToothIcon aria-hidden="true" className="h-5 w-5" />
               <span className="text-left leading-snug">{t('nav.settings')}</span>
