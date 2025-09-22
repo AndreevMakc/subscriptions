@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    @apply min-h-screen bg-gradient-to-br from-peach via-blush to-lavender bg-fixed text-midnight;
+    background-attachment: fixed;
+  }
+
+  main {
+    @apply w-full;
+  }
+
+  ::selection {
+    @apply bg-accent text-white;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply rounded-card border border-white/60 bg-surface/80 shadow-card backdrop-blur-xl transition duration-200 ease-soft-spring hover:translate-y-[-2px] hover:shadow-card;
+  }
+
+  .pill-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/40 bg-white/60 px-4 py-2 text-sm font-medium text-midnight shadow-inner-soft transition duration-200 ease-soft-spring hover:bg-white/80 hover:shadow-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .text-section {
+    font-variant: small-caps;
+    letter-spacing: 0.32em;
+    @apply text-xs font-semibold uppercase tracking-[0.32em] text-midnight/60;
+  }
+}
+
+@layer utilities {
+  .accent-dot::before {
+    content: '';
+    display: inline-block;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 9999px;
+    background-image: linear-gradient(135deg, #f98080, #ffb3c1);
+    margin-right: 0.5rem;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.65);
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+  }
+}
