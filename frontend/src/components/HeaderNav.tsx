@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType, type SVGProps } from 'react'
+import { createPortal } from 'react-dom'
 import { NavLink, useLocation } from 'react-router-dom'
 import clsx from 'clsx'
 import {
@@ -35,10 +36,15 @@ const HeaderNav = () => {
   const { t, locale } = useI18n()
   const isRussian = locale === 'ru'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const desktopTextClass = isRussian
     ? 'text-sm leading-tight xl:text-base'
     : 'text-[13px] leading-tight xl:text-sm 2xl:text-base'
   const desktopPaddingClass = isRussian ? 'px-3 py-2' : 'px-3.5 py-2'
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   useEffect(() => {
     if (!mobileMenuOpen) return
@@ -233,90 +239,93 @@ const HeaderNav = () => {
         </NavLink>
       </div>
 
-      {mobileMenuOpen ? (
-        <div
-          className="fixed inset-0 z-[200] flex justify-end bg-midnight/30 backdrop-blur-sm lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          <div
-            id="mobile-navigation"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('nav.menuTitle')}
-            className="glass-card m-4 flex w-full max-w-xs flex-col gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-card"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold uppercase tracking-[0.3em] text-midnight/60">SubsKeeper</span>
-              <button
-                type="button"
-                className="pill-button flex h-10 w-10 items-center justify-center bg-white/70 text-midnight hover:bg-white"
-                onClick={() => setMobileMenuOpen(false)}
-                aria-label={t('nav.closeMenu')}
+      {mobileMenuOpen && isClient
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[400] flex justify-end bg-midnight/30 backdrop-blur-sm lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <div
+                id="mobile-navigation"
+                role="dialog"
+                aria-modal="true"
+                aria-label={t('nav.menuTitle')}
+                className="glass-card m-4 flex w-full max-w-xs flex-col gap-6 rounded-3xl border border-white/60 bg-white/80 p-6 shadow-card"
+                onClick={(event) => event.stopPropagation()}
               >
-                <XMarkIcon aria-hidden="true" className="h-5 w-5" />
-              </button>
-            </div>
-            <nav className="flex flex-col gap-1.5">
-              {navItems.map(({ to, key, Icon }) => (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold uppercase tracking-[0.3em] text-midnight/60">SubsKeeper</span>
+                  <button
+                    type="button"
+                    className="pill-button flex h-10 w-10 items-center justify-center bg-white/70 text-midnight hover:bg-white"
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-label={t('nav.closeMenu')}
+                  >
+                    <XMarkIcon aria-hidden="true" className="h-5 w-5" />
+                  </button>
+                </div>
+                <nav className="flex flex-col gap-1.5">
+                  {navItems.map(({ to, key, Icon }) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      className={({ isActive }) =>
+                        clsx(
+                          'pill-button flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] leading-5 font-medium',
+                          isActive ? 'bg-white/80 text-midnight shadow-card' : 'bg-white/50 text-midnight/80 hover:text-midnight',
+                        )
+                      }
+                      end={to === '/'}
+                    >
+                      <Icon aria-hidden="true" className="h-4 w-4" />
+                      <span className="text-left leading-snug">{t(key)}</span>
+                    </NavLink>
+                  ))}
+                </nav>
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    type="button"
+                    className="pill-button flex items-center gap-2.5 bg-white/60 px-3.5 py-2.5 text-[13px] leading-5 font-medium text-midnight/80 hover:text-midnight"
+                    onClick={handleImportClick}
+                    aria-label={t('import.ariaLabel')}
+                  >
+                    <ArrowUpTrayIcon aria-hidden="true" className="h-4 w-4" />
+                    <span className="text-left leading-snug">{t('nav.importJson')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="pill-button flex items-center gap-2.5 bg-white/60 px-3.5 py-2.5 text-[13px] leading-5 font-medium text-midnight/80 hover:text-midnight"
+                    onClick={handleExport}
+                  >
+                    <ArrowDownTrayIcon aria-hidden="true" className="h-4 w-4" />
+                    <span className="text-left leading-snug">{t('nav.export')}</span>
+                  </button>
+                  <NavLink
+                    to={{ pathname: '/subscriptions/new', search: location.search }}
+                    className="pill-button flex items-center gap-2.5 bg-accent px-3.5 py-2.5 text-[13px] font-semibold text-white shadow-card hover:bg-accent/90"
+                    aria-label={addSubscriptionLabel}
+                  >
+                    <PlusIcon aria-hidden="true" className="h-4 w-4" />
+                    <span>{addSubscriptionLabel}</span>
+                  </NavLink>
+                </div>
                 <NavLink
-                  key={to}
-                  to={to}
+                  to="/settings"
                   className={({ isActive }) =>
                     clsx(
-                      'pill-button flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] leading-5 font-medium',
-                      isActive ? 'bg-white/80 text-midnight shadow-card' : 'bg-white/50 text-midnight/80 hover:text-midnight',
+                      'pill-button flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-semibold text-white shadow-card transition',
+                      isActive ? 'bg-accent/90' : 'bg-accent hover:bg-accent/90',
                     )
                   }
-                  end={to === '/'}
                 >
-                  <Icon aria-hidden="true" className="h-4 w-4" />
-                  <span className="text-left leading-snug">{t(key)}</span>
+                  <Cog6ToothIcon aria-hidden="true" className="h-4 w-4" />
+                  <span className="text-left leading-snug">{t('nav.settings')}</span>
                 </NavLink>
-              ))}
-            </nav>
-            <div className="flex flex-col gap-1.5">
-              <button
-                type="button"
-                className="pill-button flex items-center gap-2.5 bg-white/60 px-3.5 py-2.5 text-[13px] leading-5 font-medium text-midnight/80 hover:text-midnight"
-                onClick={handleImportClick}
-                aria-label={t('import.ariaLabel')}
-              >
-                <ArrowUpTrayIcon aria-hidden="true" className="h-4 w-4" />
-                <span className="text-left leading-snug">{t('nav.importJson')}</span>
-              </button>
-              <button
-                type="button"
-                className="pill-button flex items-center gap-2.5 bg-white/60 px-3.5 py-2.5 text-[13px] leading-5 font-medium text-midnight/80 hover:text-midnight"
-                onClick={handleExport}
-              >
-                <ArrowDownTrayIcon aria-hidden="true" className="h-4 w-4" />
-                <span className="text-left leading-snug">{t('nav.export')}</span>
-              </button>
-              <NavLink
-                to={{ pathname: '/subscriptions/new', search: location.search }}
-                className="pill-button flex items-center gap-2.5 bg-accent px-3.5 py-2.5 text-[13px] font-semibold text-white shadow-card hover:bg-accent/90"
-                aria-label={addSubscriptionLabel}
-              >
-                <PlusIcon aria-hidden="true" className="h-4 w-4" />
-                <span>{addSubscriptionLabel}</span>
-              </NavLink>
-            </div>
-            <NavLink
-              to="/settings"
-              className={({ isActive }) =>
-                clsx(
-                  'pill-button flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-semibold text-white shadow-card transition',
-                  isActive ? 'bg-accent/90' : 'bg-accent hover:bg-accent/90',
-                )
-              }
-            >
-              <Cog6ToothIcon aria-hidden="true" className="h-4 w-4" />
-              <span className="text-left leading-snug">{t('nav.settings')}</span>
-            </NavLink>
-          </div>
-        </div>
-      ) : null}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       <input
         ref={fileInputRef}
