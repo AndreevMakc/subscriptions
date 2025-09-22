@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type SVGProps } from 'react'
+import { useEffect, useRef, useState, type ComponentType, type SVGProps } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import clsx from 'clsx'
 import {
@@ -18,7 +18,7 @@ import { selectSettings, selectSubscriptions, useStore } from '../store/useStore
 import type { PersistedState } from '../types'
 import { useI18n, type TranslationKey } from '../i18n'
 
-const navItems: { to: string; key: TranslationKey; Icon: (props: SVGProps<SVGSVGElement>) => JSX.Element }[] = [
+const navItems: { to: string; key: TranslationKey; Icon: ComponentType<SVGProps<SVGSVGElement>> }[] = [
   { to: '/', key: 'nav.dashboard', Icon: HomeIcon },
   { to: '/subscriptions', key: 'nav.subscriptions', Icon: Squares2X2Icon },
   { to: '/archive', key: 'nav.archive', Icon: ArchiveBoxIcon },

@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import type { SVGProps } from 'react'
+import type { ComponentType, SVGProps } from 'react'
 import { ArchiveBoxIcon, CheckCircleIcon, ClockIcon, NoSymbolIcon } from '@heroicons/react/20/solid'
 import type { Status } from '../types'
 import { useI18n } from '../i18n'
@@ -9,7 +9,7 @@ const statusIcons = {
   canceled: NoSymbolIcon,
   expired: ClockIcon,
   archived: ArchiveBoxIcon,
-} as const satisfies Record<Status, (props: SVGProps<SVGSVGElement>) => JSX.Element>
+} as const satisfies Record<Status, ComponentType<SVGProps<SVGSVGElement>>>
 
 const statusStyles: Record<Status, string> = {
   active: 'bg-emerald-100 text-emerald-700 ring-emerald-300/70',
