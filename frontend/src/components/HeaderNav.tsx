@@ -234,7 +234,10 @@ const HeaderNav = () => {
       </div>
 
       {mobileMenuOpen ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-midnight/30 backdrop-blur-sm lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+        <div
+          className="fixed inset-0 z-[200] flex justify-end bg-midnight/30 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        >
           <div
             id="mobile-navigation"
             role="dialog"
@@ -254,48 +257,48 @@ const HeaderNav = () => {
                 <XMarkIcon aria-hidden="true" className="h-5 w-5" />
               </button>
             </div>
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-1.5">
               {navItems.map(({ to, key, Icon }) => (
                 <NavLink
                   key={to}
                   to={to}
                   className={({ isActive }) =>
                     clsx(
-                      'pill-button flex items-center gap-3 px-4 py-3 text-sm font-medium',
+                      'pill-button flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] leading-5 font-medium',
                       isActive ? 'bg-white/80 text-midnight shadow-card' : 'bg-white/50 text-midnight/80 hover:text-midnight',
                     )
                   }
                   end={to === '/'}
                 >
-                  <Icon aria-hidden="true" className="h-5 w-5" />
+                  <Icon aria-hidden="true" className="h-4 w-4" />
                   <span className="text-left leading-snug">{t(key)}</span>
                 </NavLink>
               ))}
             </nav>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <button
                 type="button"
-                className="pill-button flex items-center gap-3 bg-white/60 px-4 py-3 text-sm font-medium text-midnight/80 hover:text-midnight"
+                className="pill-button flex items-center gap-2.5 bg-white/60 px-3.5 py-2.5 text-[13px] leading-5 font-medium text-midnight/80 hover:text-midnight"
                 onClick={handleImportClick}
                 aria-label={t('import.ariaLabel')}
               >
-                <ArrowUpTrayIcon aria-hidden="true" className="h-5 w-5" />
+                <ArrowUpTrayIcon aria-hidden="true" className="h-4 w-4" />
                 <span className="text-left leading-snug">{t('nav.importJson')}</span>
               </button>
               <button
                 type="button"
-                className="pill-button flex items-center gap-3 bg-white/60 px-4 py-3 text-sm font-medium text-midnight/80 hover:text-midnight"
+                className="pill-button flex items-center gap-2.5 bg-white/60 px-3.5 py-2.5 text-[13px] leading-5 font-medium text-midnight/80 hover:text-midnight"
                 onClick={handleExport}
               >
-                <ArrowDownTrayIcon aria-hidden="true" className="h-5 w-5" />
+                <ArrowDownTrayIcon aria-hidden="true" className="h-4 w-4" />
                 <span className="text-left leading-snug">{t('nav.export')}</span>
               </button>
               <NavLink
                 to={{ pathname: '/subscriptions/new', search: location.search }}
-                className="pill-button flex items-center gap-3 bg-accent px-4 py-3 text-sm font-semibold text-white shadow-card hover:bg-accent/90"
+                className="pill-button flex items-center gap-2.5 bg-accent px-3.5 py-2.5 text-[13px] font-semibold text-white shadow-card hover:bg-accent/90"
                 aria-label={addSubscriptionLabel}
               >
-                <PlusIcon aria-hidden="true" className="h-5 w-5" />
+                <PlusIcon aria-hidden="true" className="h-4 w-4" />
                 <span>{addSubscriptionLabel}</span>
               </NavLink>
             </div>
@@ -303,12 +306,12 @@ const HeaderNav = () => {
               to="/settings"
               className={({ isActive }) =>
                 clsx(
-                  'pill-button flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white shadow-card transition',
+                  'pill-button flex items-center gap-2.5 px-3.5 py-2.5 text-[13px] font-semibold text-white shadow-card transition',
                   isActive ? 'bg-accent/90' : 'bg-accent hover:bg-accent/90',
                 )
               }
             >
-              <Cog6ToothIcon aria-hidden="true" className="h-5 w-5" />
+              <Cog6ToothIcon aria-hidden="true" className="h-4 w-4" />
               <span className="text-left leading-snug">{t('nav.settings')}</span>
             </NavLink>
           </div>
