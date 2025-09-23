@@ -1,11 +1,17 @@
 import { create } from 'zustand'
-import { createJSONStorage, persist } from 'zustand/middleware'
 import type { PersistedState, Settings, Subscription } from '../types'
-import { STORAGE_KEY } from '../utils/constants'
-import { createDemoSubscriptions } from '../data/seed'
 import { createId } from '../utils/id'
-import { createSnoozeDate } from '../utils/dates'
 import { resolveStatus } from '../utils/subscriptions'
+import {
+  createSubscription as apiCreateSubscription,
+  deleteSubscription as apiDeleteSubscription,
+  listSubscriptions as apiListSubscriptions,
+  patchSubscription as apiPatchSubscription,
+  snoozeSubscription as apiSnoozeSubscription,
+  type SubscriptionCreatePayload,
+  type SubscriptionUpdatePayload,
+  updateSubscriptionStatus as apiUpdateSubscriptionStatus,
+} from '../api/subscriptions'
 
 export type ToastVariant = 'info' | 'success' | 'error'
 
@@ -15,24 +21,6 @@ export interface ToastMessage {
   description?: string
   variant: ToastVariant
 }
-
-const memoryStorage: Storage = {
-  getItem: () => null,
-  setItem: () => undefined,
-  removeItem: () => undefined,
-  clear: () => undefined,
-  key: () => null,
-  get length() {
-    return 0
-  },
-}
-
-const storage = createJSONStorage<PersistedState>(() => {
-  if (typeof window === 'undefined') {
-    return memoryStorage
-  }
-  return window.localStorage
-})
 
 const createDefaultSettings = (): Settings => ({
   locale: 'en',
@@ -55,241 +43,211 @@ interface StoreState {
   ui: {
     toasts: ToastMessage[]
   }
-  addSubscription: (input: SubscriptionDraft) => Subscription
-  updateSubscription: (id: string, input: Partial<SubscriptionDraft>) => Subscription | null
-  removeSubscription: (id: string) => void
-  archiveSubscription: (id: string) => void
-  restoreSubscription: (id: string) => void
-  snoozeSubscription: (id: string, days?: number) => void
-  clearReminder: (id: string) => void
+  initialize: () => Promise<void>
+  addSubscription: (input: SubscriptionDraft) => Promise<Subscription>
+  updateSubscription: (id: string, input: Partial<SubscriptionDraft>) => Promise<Subscription | null>
+  removeSubscription: (id: string) => Promise<void>
+  archiveSubscription: (id: string) => Promise<Subscription | null>
+  restoreSubscription: (id: string) => Promise<Subscription | null>
+  snoozeSubscription: (id: string, days?: number) => Promise<Subscription | null>
+  clearReminder: (id: string) => Promise<Subscription | null>
   updateSettings: (settings: Partial<Settings>) => void
-  importData: (data: PersistedState) => void
+  importData: (data: PersistedState) => Promise<void>
+  recomputeStatuses: () => Promise<void>
   pushToast: (toast: Omit<ToastMessage, 'id'> & { id?: string }) => void
   dismissToast: (id: string) => void
-  recomputeStatuses: () => void
-  finishHydration: (data?: PersistedState) => void
 }
 
-export const useStore = create<StoreState>()(
-  persist(
-    (set, get) => ({
-      hydrated: false,
-      subscriptions: [],
-      settings: createDefaultSettings(),
-      ui: {
-        toasts: [],
-      },
-      addSubscription: (input) => {
-        const now = new Date().toISOString()
-        const statusBase = input.status ?? 'active'
-        const computedStatus =
-          statusBase === 'archived' || statusBase === 'canceled'
-            ? statusBase
-            : resolveStatus({
-                ...input,
-                id: 'temp',
-                createdAt: now,
-                updatedAt: now,
-              } as Subscription)
-        const subscription: Subscription = {
-          ...input,
-          id: createId(),
-          status: computedStatus,
-          nextReminderAt: input.nextReminderAt || undefined,
-          lastNotifiedAt: input.lastNotifiedAt || undefined,
-          createdAt: now,
-          updatedAt: now,
-        }
-        set((state) => ({
-          subscriptions: [subscription, ...state.subscriptions],
-        }))
-        return subscription
-      },
-      updateSubscription: (id, input) => {
-        let result: Subscription | null = null
-        set((state) => {
-          const subscriptions = state.subscriptions.map((subscription) => {
-            if (subscription.id !== id) return subscription
-            const now = new Date().toISOString()
-            const merged: Subscription = {
-              ...subscription,
-              ...input,
-              updatedAt: now,
-            }
-            const statusBase = input.status ?? merged.status
-            merged.status =
-              statusBase === 'archived' || statusBase === 'canceled'
-                ? statusBase
-                : resolveStatus(merged)
-            if (input.nextReminderAt === null) {
-              merged.nextReminderAt = undefined
-            }
-            result = merged
-            return merged
-          })
-          return { subscriptions }
-        })
-        return result
-      },
-      removeSubscription: (id) => {
-        set((state) => ({
-          subscriptions: state.subscriptions.filter((subscription) => subscription.id !== id),
-        }))
-      },
-      archiveSubscription: (id) => {
-        set((state) => ({
-          subscriptions: state.subscriptions.map((subscription) =>
-            subscription.id === id
-              ? {
-                  ...subscription,
-                  status: 'archived',
-                  nextReminderAt: undefined,
-                  updatedAt: new Date().toISOString(),
-                }
-              : subscription,
-          ),
-        }))
-      },
-      restoreSubscription: (id) => {
-        set((state) => ({
-          subscriptions: state.subscriptions.map((subscription) =>
-            subscription.id === id
-              ? {
-                  ...subscription,
-                  status: resolveStatus({ ...subscription, status: 'active' }),
-                  updatedAt: new Date().toISOString(),
-                }
-              : subscription,
-          ),
-        }))
-      },
-      snoozeSubscription: (id, days = 7) => {
-        set((state) => ({
-          subscriptions: state.subscriptions.map((subscription) =>
-            subscription.id === id
-              ? {
-                  ...subscription,
-                  nextReminderAt: createSnoozeDate(days),
-                  updatedAt: new Date().toISOString(),
-                }
-              : subscription,
-          ),
-        }))
-      },
-      clearReminder: (id) => {
-        set((state) => ({
-          subscriptions: state.subscriptions.map((subscription) =>
-            subscription.id === id
-              ? {
-                  ...subscription,
-                  nextReminderAt: undefined,
-                  updatedAt: new Date().toISOString(),
-                }
-              : subscription,
-          ),
-        }))
-      },
-      updateSettings: (settings) => {
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            ...settings,
-          },
-        }))
-      },
-      importData: (data) => {
-        get().finishHydration(data)
-      },
-      pushToast: (toast) => {
-        const id = toast.id ?? createId()
-        set((state) => {
-          const nextToasts = [...state.ui.toasts, { ...toast, id }]
-          return {
-            ui: {
-              toasts: nextToasts.slice(-4),
-            },
-          }
-        })
-      },
-      dismissToast: (id) => {
-        set((state) => ({
-          ui: {
-            toasts: state.ui.toasts.filter((toast) => toast.id !== id),
-          },
-        }))
-      },
-      recomputeStatuses: () => {
-        set((state) => ({
-          subscriptions: state.subscriptions.map((subscription) => {
-            const computed = resolveStatus(subscription)
-            if (computed === subscription.status) return subscription
-            return {
-              ...subscription,
-              status: computed,
-              updatedAt: new Date().toISOString(),
-            }
-          }),
-        }))
-      },
-      finishHydration: (persisted) => {
-        const defaults = createDefaultSettings()
-        const nowIso = new Date().toISOString()
-        const rawSubscriptions = persisted?.subscriptions
-        const incoming = Array.isArray(rawSubscriptions) ? rawSubscriptions : undefined
-        const hydratedSubscriptions = (incoming ?? createDemoSubscriptions()).map((subscription) => {
-          const id = subscription.id || createId()
-          const createdAt = subscription.createdAt || nowIso
-          const updatedAt = subscription.updatedAt || nowIso
-          const nextReminderAt = subscription.nextReminderAt || undefined
-          const lastNotifiedAt = subscription.lastNotifiedAt || undefined
-          const status =
-            subscription.status === 'archived' || subscription.status === 'canceled'
-              ? subscription.status
-              : resolveStatus({
-                  ...subscription,
-                  id,
-                  createdAt,
-                  updatedAt,
-                  nextReminderAt,
-                  lastNotifiedAt,
-                })
-          return {
-            ...subscription,
-            id,
-            createdAt,
-            updatedAt,
-            nextReminderAt,
-            lastNotifiedAt,
-            status,
-          }
-        })
+const toCreatePayload = (input: SubscriptionDraft): SubscriptionCreatePayload => ({
+  name: input.name,
+  price: input.price,
+  currency: input.currency,
+  end_at: input.endAt,
+  status: input.status,
+  category: input.category ?? null,
+  vendor: input.vendor ?? null,
+  notes: input.notes ?? null,
+})
 
-        set({
-          hydrated: true,
-          subscriptions: hydratedSubscriptions,
-          settings: persisted?.settings ? { ...defaults, ...persisted.settings } : defaults,
-        })
-      },
-    }),
-    {
-      name: STORAGE_KEY,
-      version: 1,
-      storage,
-      partialize: (state) => ({
-        subscriptions: state.subscriptions,
-        settings: state.settings,
-      }),
-      onRehydrateStorage: (storeState) => (persisted, error) => {
-        if (error) {
-          console.error('SubsKeeper hydration failed', error)
-          storeState.finishHydration()
-          return
-        }
-        storeState.finishHydration(persisted as PersistedState | undefined)
-      },
+const toUpdatePayload = (input: Partial<SubscriptionDraft>): SubscriptionUpdatePayload => {
+  const payload: SubscriptionUpdatePayload = {}
+  if ('name' in input && input.name !== undefined) payload.name = input.name
+  if ('price' in input && input.price !== undefined) payload.price = input.price
+  if ('currency' in input && input.currency !== undefined) payload.currency = input.currency
+  if ('endAt' in input && input.endAt !== undefined) payload.end_at = input.endAt
+  if ('category' in input) payload.category = input.category ?? null
+  if ('vendor' in input) payload.vendor = input.vendor ?? null
+  if ('notes' in input) payload.notes = input.notes ?? null
+  if ('status' in input && input.status !== undefined) payload.status = input.status
+  return payload
+}
+
+export const useStore = create<StoreState>()((set, get) => {
+  const refreshSubscriptions = async () => {
+    const subscriptions = await apiListSubscriptions()
+    set(() => ({
+      subscriptions: subscriptions.map((subscription) => ({
+        ...subscription,
+        status:
+          subscription.status === 'archived' || subscription.status === 'canceled'
+            ? subscription.status
+            : resolveStatus(subscription),
+      })),
+    }))
+    return subscriptions
+  }
+
+  return {
+    hydrated: false,
+    subscriptions: [],
+    settings: createDefaultSettings(),
+    ui: {
+      toasts: [],
     },
-  ),
-)
+    initialize: async () => {
+      if (get().hydrated) return
+      try {
+        await refreshSubscriptions()
+      } catch (error) {
+        console.error('Failed to load subscriptions', error)
+        get().pushToast({
+          title: 'Failed to load data',
+          description: 'Could not connect to the subscription service.',
+          variant: 'error',
+        })
+      } finally {
+        set({ hydrated: true })
+      }
+    },
+    addSubscription: async (input) => {
+      const created = await apiCreateSubscription(toCreatePayload(input))
+      set((state) => ({
+        subscriptions: [created, ...state.subscriptions],
+      }))
+      return created
+    },
+    updateSubscription: async (id, input) => {
+      const exists = get().subscriptions.find((subscription) => subscription.id === id)
+      if (!exists) return null
+      const updated = await apiPatchSubscription(id, toUpdatePayload(input))
+      set((state) => ({
+        subscriptions: state.subscriptions.map((subscription) =>
+          subscription.id === id ? updated : subscription,
+        ),
+      }))
+      return updated
+    },
+    removeSubscription: async (id) => {
+      await apiDeleteSubscription(id)
+      set((state) => ({
+        subscriptions: state.subscriptions.filter((subscription) => subscription.id !== id),
+      }))
+    },
+    archiveSubscription: async (id) => {
+      const exists = get().subscriptions.find((subscription) => subscription.id === id)
+      if (!exists) return null
+      const updated = await apiUpdateSubscriptionStatus(id, 'archived')
+      set((state) => ({
+        subscriptions: state.subscriptions.map((subscription) =>
+          subscription.id === id ? updated : subscription,
+        ),
+      }))
+      return updated
+    },
+    restoreSubscription: async (id) => {
+      const exists = get().subscriptions.find((subscription) => subscription.id === id)
+      if (!exists) return null
+      const status = exists.status === 'canceled' ? 'canceled' : 'active'
+      const updated = await apiUpdateSubscriptionStatus(id, status)
+      set((state) => ({
+        subscriptions: state.subscriptions.map((subscription) =>
+          subscription.id === id ? updated : subscription,
+        ),
+      }))
+      return updated
+    },
+    snoozeSubscription: async (id) => {
+      const exists = get().subscriptions.find((subscription) => subscription.id === id)
+      if (!exists) return null
+      const updated = await apiSnoozeSubscription(id)
+      set((state) => ({
+        subscriptions: state.subscriptions.map((subscription) =>
+          subscription.id === id ? updated : subscription,
+        ),
+      }))
+      return updated
+    },
+    clearReminder: async (id) => {
+      const exists = get().subscriptions.find((subscription) => subscription.id === id)
+      if (!exists) return null
+      const updated = await apiPatchSubscription(id, toUpdatePayload({ status: exists.status }))
+      set((state) => ({
+        subscriptions: state.subscriptions.map((subscription) =>
+          subscription.id === id ? updated : subscription,
+        ),
+      }))
+      return updated
+    },
+    updateSettings: (settings) => {
+      set((state) => ({
+        settings: {
+          ...state.settings,
+          ...settings,
+        },
+      }))
+    },
+    importData: async (data) => {
+      const currentIds = get().subscriptions.map((subscription) => subscription.id)
+      await Promise.allSettled(currentIds.map((id) => apiDeleteSubscription(id)))
+
+      for (const subscription of data.subscriptions) {
+        await apiCreateSubscription(
+          toCreatePayload({
+            name: subscription.name,
+            price: subscription.price,
+            currency: subscription.currency,
+            endAt: subscription.endAt,
+            category: subscription.category ?? undefined,
+            vendor: subscription.vendor ?? undefined,
+            notes: subscription.notes ?? undefined,
+            status: subscription.status,
+            nextReminderAt: subscription.nextReminderAt ?? undefined,
+            lastNotifiedAt: subscription.lastNotifiedAt ?? undefined,
+          }),
+        )
+      }
+
+      await refreshSubscriptions()
+      set((state) => ({
+        settings: {
+          ...state.settings,
+          ...data.settings,
+        },
+      }))
+    },
+    recomputeStatuses: async () => {
+      await refreshSubscriptions()
+    },
+    pushToast: (toast) => {
+      const id = toast.id ?? createId()
+      set((state) => {
+        const nextToasts = [...state.ui.toasts, { ...toast, id }]
+        return {
+          ui: {
+            toasts: nextToasts.slice(-4),
+          },
+        }
+      })
+    },
+    dismissToast: (id) => {
+      set((state) => ({
+        ui: {
+          toasts: state.ui.toasts.filter((toast) => toast.id !== id),
+        },
+      }))
+    },
+  }
+})
 
 export const useHydratedStore = <T,>(selector: (state: StoreState) => T, fallback: T) => {
   return useStore((state) => (state.hydrated ? selector(state) : fallback))

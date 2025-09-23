@@ -11,7 +11,7 @@ import { useI18n } from '../i18n'
 interface SubscriptionFormProps {
   subscription?: Subscription
   settings: Settings
-  onSubmit: (values: SubscriptionDraft) => void
+  onSubmit: (values: SubscriptionDraft) => Promise<Subscription | void> | Subscription | void
   onCancel: () => void
   submitLabel?: string
 }
@@ -60,7 +60,7 @@ const SubscriptionForm = ({ subscription, settings, onSubmit, onCancel, submitLa
   const currentName = watch('name')
   const displayName = currentName || t('subscriptionForm.newName')
 
-  const handleFormSubmit = handleSubmit((values) => {
+  const handleFormSubmit = handleSubmit(async (values) => {
     const endAtIso =
       fromDateInputValue(values.endAt, settings.timezone) ?? new Date(values.endAt).toISOString()
 
@@ -77,8 +77,13 @@ const SubscriptionForm = ({ subscription, settings, onSubmit, onCancel, submitLa
       lastNotifiedAt: subscription?.lastNotifiedAt,
     }
 
-    onSubmit(payload)
-    reset(values)
+    try {
+      await onSubmit(payload)
+      reset(values)
+    } catch (error) {
+      console.error('Subscription form submission failed', error)
+      throw error
+    }
   })
 
   return (

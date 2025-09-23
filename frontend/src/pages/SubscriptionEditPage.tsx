@@ -33,16 +33,27 @@ const SubscriptionEditPage = () => {
       <SubscriptionForm
         subscription={subscription}
         settings={settings}
-        onSubmit={(values) => {
-          const updated = update(subscription.id, values)
-          pushToast({
-            title: t('editSubscription.toast.title'),
-            description: t('editSubscription.toast.description', {
-              name: updated?.name ?? subscription.name,
-            }),
-            variant: 'success',
-          })
-          navigate('/subscriptions')
+        onSubmit={async (values) => {
+          try {
+            const updated = await update(subscription.id, values)
+            pushToast({
+              title: t('editSubscription.toast.title'),
+              description: t('editSubscription.toast.description', {
+                name: updated?.name ?? subscription.name,
+              }),
+              variant: 'success',
+            })
+            navigate('/subscriptions')
+            return updated ?? undefined
+          } catch (error) {
+            console.error('Failed to update subscription', error)
+            pushToast({
+              title: t('editSubscription.toast.errorTitle'),
+              description: t('editSubscription.toast.errorDescription'),
+              variant: 'error',
+            })
+            throw error
+          }
         }}
         onCancel={() => navigate(-1)}
         submitLabel={t('subscriptionForm.update')}
