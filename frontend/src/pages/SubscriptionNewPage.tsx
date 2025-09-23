@@ -15,23 +15,14 @@ const SubscriptionNewPage = () => {
       <p className="text-section accent-dot">{t('newSubscription.title')}</p>
       <SubscriptionForm
         settings={settings}
-        onSubmit={async (values) => {
-          try {
-            const created = await add(values)
-            pushToast({
-              title: t('newSubscription.toast.title'),
-              description: t('newSubscription.toast.description', { name: created.name }),
-              variant: 'success',
-            })
-            navigate('/subscriptions')
-          } catch (error) {
-            console.error(error)
-            pushToast({
-              title: t('toast.error.generic.title'),
-              description: t('toast.error.generic.description'),
-              variant: 'error',
-            })
-          }
+        onSubmit={(values) => {
+          const created = add(values)
+          pushToast({
+            title: t('newSubscription.toast.title'),
+            description: t('newSubscription.toast.description', { name: created.name }),
+            variant: 'success',
+          })
+          navigate('/subscriptions')
         }}
         onCancel={() => navigate(-1)}
       />

@@ -30,6 +30,7 @@ const HeaderNav = () => {
   const subscriptions = useStore(selectSubscriptions)
   const settings = useStore(selectSettings)
   const importData = useStore((state) => state.importData)
+  const recomputeStatuses = useStore((state) => state.recomputeStatuses)
   const pushToast = useStore((state) => state.pushToast)
   const location = useLocation()
   const { t, locale } = useI18n()
@@ -97,7 +98,8 @@ const HeaderNav = () => {
       }
       const parsed = JSON.parse(text)
       const data = persistedStateSchema.parse(parsed) as PersistedState
-      await importData(data)
+      importData(data)
+      recomputeStatuses()
       pushToast({
         title: t('nav.importComplete.title'),
         description: t('nav.importComplete.description'),
@@ -110,8 +112,6 @@ const HeaderNav = () => {
         description = t('nav.importFailed.invalidJson')
       } else if (error instanceof ZodError) {
         description = t('nav.importFailed.invalidStructure')
-      } else if (error instanceof Error && error.message === 'SUBSKEEPER_IMPORT_FAILED') {
-        description = t('nav.importFailed.partial')
       } else if (error instanceof Error && error.message === 'SUBSKEEPER_EMPTY_FILE') {
         description = t('nav.importFailed.empty')
       }
