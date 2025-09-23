@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environments
+.env
+.venv/
+venv/
+
+# IDEs
+.idea/
+.vscode/
+
+# Byte-compiled / cache
+.mypy_cache/
+.pytest_cache/
+
+# Node modules (frontend)
+frontend/node_modules/
