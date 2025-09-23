@@ -20,24 +20,42 @@ const ArchivePage = () => {
     [subscriptions],
   )
 
-  const handleRestore = (id: string) => {
-    restore(id)
-    pushToast({
-      title: t('archive.toast.restored.title'),
-      description: t('archive.toast.restored.description'),
-      variant: 'success',
-    })
+  const handleRestore = async (id: string) => {
+    try {
+      await restore(id)
+      pushToast({
+        title: t('archive.toast.restored.title'),
+        description: t('archive.toast.restored.description'),
+        variant: 'success',
+      })
+    } catch (error) {
+      console.error(error)
+      pushToast({
+        title: t('toast.error.generic.title'),
+        description: t('toast.error.generic.description'),
+        variant: 'error',
+      })
+    }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!confirmId) return
-    remove(confirmId)
-    pushToast({
-      title: t('archive.toast.deleted.title'),
-      description: t('archive.toast.deleted.description'),
-      variant: 'info',
-    })
-    setConfirmId(null)
+    try {
+      await remove(confirmId)
+      pushToast({
+        title: t('archive.toast.deleted.title'),
+        description: t('archive.toast.deleted.description'),
+        variant: 'info',
+      })
+      setConfirmId(null)
+    } catch (error) {
+      console.error(error)
+      pushToast({
+        title: t('toast.error.generic.title'),
+        description: t('toast.error.generic.description'),
+        variant: 'error',
+      })
+    }
   }
 
   return (
