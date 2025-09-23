@@ -10,6 +10,7 @@ const DashboardPage = () => {
   const settings = useStore(selectSettings)
   const snooze = useStore((state) => state.snoozeSubscription)
   const clearReminder = useStore((state) => state.clearReminder)
+  const pushToast = useStore((state) => state.pushToast)
   const { t } = useI18n()
 
   const remindersDue = subscriptions.filter((subscription) => shouldShowInReminders(subscription, settings)).length
@@ -30,8 +31,30 @@ const DashboardPage = () => {
           <ReminderList
             subscriptions={subscriptions}
             settings={settings}
-            onSnooze={snooze}
-            onClearReminder={clearReminder}
+            onSnooze={async (id) => {
+              try {
+                await snooze(id)
+              } catch (error) {
+                console.error(error)
+                pushToast({
+                  title: t('toast.error.generic.title'),
+                  description: t('toast.error.generic.description'),
+                  variant: 'error',
+                })
+              }
+            }}
+            onClearReminder={async (id) => {
+              try {
+                await clearReminder(id)
+              } catch (error) {
+                console.error(error)
+                pushToast({
+                  title: t('toast.error.generic.title'),
+                  description: t('toast.error.generic.description'),
+                  variant: 'error',
+                })
+              }
+            }}
           />
         </div>
         <Sparkline data={sparkline} />

@@ -34,24 +34,42 @@ const SubscriptionsPage = () => {
     return sortSubscriptions(base, sort)
   }, [subscriptions, filters, sort])
 
-  const handleArchive = (id: string) => {
-    archive(id)
-    pushToast({
-      title: t('subscriptions.toast.archived.title'),
-      description: t('subscriptions.toast.archived.description'),
-      variant: 'info',
-    })
+  const handleArchive = async (id: string) => {
+    try {
+      await archive(id)
+      pushToast({
+        title: t('subscriptions.toast.archived.title'),
+        description: t('subscriptions.toast.archived.description'),
+        variant: 'info',
+      })
+    } catch (error) {
+      console.error(error)
+      pushToast({
+        title: t('toast.error.generic.title'),
+        description: t('toast.error.generic.description'),
+        variant: 'error',
+      })
+    }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!confirmId) return
-    remove(confirmId)
-    pushToast({
-      title: t('subscriptions.toast.removed.title'),
-      description: t('subscriptions.toast.removed.description'),
-      variant: 'info',
-    })
-    setConfirmId(null)
+    try {
+      await remove(confirmId)
+      pushToast({
+        title: t('subscriptions.toast.removed.title'),
+        description: t('subscriptions.toast.removed.description'),
+        variant: 'info',
+      })
+      setConfirmId(null)
+    } catch (error) {
+      console.error(error)
+      pushToast({
+        title: t('toast.error.generic.title'),
+        description: t('toast.error.generic.description'),
+        variant: 'error',
+      })
+    }
   }
 
   return (
