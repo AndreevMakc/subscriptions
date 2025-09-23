@@ -58,16 +58,25 @@ interface StoreState {
   dismissToast: (id: string) => void
 }
 
-const toCreatePayload = (input: SubscriptionDraft): SubscriptionCreatePayload => ({
-  name: input.name,
-  price: input.price,
-  currency: input.currency,
-  end_at: input.endAt,
-  status: input.status,
-  category: input.category ?? null,
-  vendor: input.vendor ?? null,
-  notes: input.notes ?? null,
-})
+const toCreatePayload = (input: SubscriptionDraft): SubscriptionCreatePayload => {
+  const payload: SubscriptionCreatePayload = {
+    name: input.name,
+    price: input.price,
+    currency: input.currency,
+    end_at: input.endAt,
+    status: input.status,
+    category: input.category ?? null,
+    vendor: input.vendor ?? null,
+    notes: input.notes ?? null,
+  }
+  if (input.nextReminderAt !== undefined) {
+    payload.next_reminder_at = input.nextReminderAt
+  }
+  if (input.lastNotifiedAt !== undefined) {
+    payload.last_notified_at = input.lastNotifiedAt
+  }
+  return payload
+}
 
 const toUpdatePayload = (input: Partial<SubscriptionDraft>): SubscriptionUpdatePayload => {
   const payload: SubscriptionUpdatePayload = {}
@@ -79,6 +88,12 @@ const toUpdatePayload = (input: Partial<SubscriptionDraft>): SubscriptionUpdateP
   if ('vendor' in input) payload.vendor = input.vendor ?? null
   if ('notes' in input) payload.notes = input.notes ?? null
   if ('status' in input && input.status !== undefined) payload.status = input.status
+  if (Object.prototype.hasOwnProperty.call(input, 'nextReminderAt')) {
+    payload.next_reminder_at = input.nextReminderAt ?? null
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'lastNotifiedAt')) {
+    payload.last_notified_at = input.lastNotifiedAt ?? null
+  }
   return payload
 }
 
@@ -180,7 +195,10 @@ export const useStore = create<StoreState>()((set, get) => {
     clearReminder: async (id) => {
       const exists = get().subscriptions.find((subscription) => subscription.id === id)
       if (!exists) return null
-      const updated = await apiPatchSubscription(id, toUpdatePayload({ status: exists.status }))
+      const updated = await apiPatchSubscription(
+        id,
+        toUpdatePayload({ status: exists.status, nextReminderAt: null, lastNotifiedAt: null }),
+      )
       set((state) => ({
         subscriptions: state.subscriptions.map((subscription) =>
           subscription.id === id ? updated : subscription,
@@ -201,20 +219,24 @@ export const useStore = create<StoreState>()((set, get) => {
       await Promise.allSettled(currentIds.map((id) => apiDeleteSubscription(id)))
 
       for (const subscription of data.subscriptions) {
-        await apiCreateSubscription(
-          toCreatePayload({
-            name: subscription.name,
-            price: subscription.price,
-            currency: subscription.currency,
-            endAt: subscription.endAt,
-            category: subscription.category ?? undefined,
-            vendor: subscription.vendor ?? undefined,
-            notes: subscription.notes ?? undefined,
-            status: subscription.status,
-            nextReminderAt: subscription.nextReminderAt ?? undefined,
-            lastNotifiedAt: subscription.lastNotifiedAt ?? undefined,
-          }),
-        )
+        const draft: SubscriptionDraft = {
+          name: subscription.name,
+          price: subscription.price,
+          currency: subscription.currency,
+          endAt: subscription.endAt,
+          category: subscription.category ?? undefined,
+          vendor: subscription.vendor ?? undefined,
+          notes: subscription.notes ?? undefined,
+          status: subscription.status,
+          ...(subscription.nextReminderAt !== undefined
+            ? { nextReminderAt: subscription.nextReminderAt }
+            : {}),
+          ...(subscription.lastNotifiedAt !== undefined
+            ? { lastNotifiedAt: subscription.lastNotifiedAt }
+            : {}),
+        }
+
+        await apiCreateSubscription(toCreatePayload(draft))
       }
 
       await refreshSubscriptions()

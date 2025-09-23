@@ -103,12 +103,16 @@ async def create_subscription(
         vendor=payload.vendor,
         notes=payload.notes,
     )
-    subscription.next_reminder_at = calculate_next_reminder(
-        end_at=subscription.end_at,
-        status=subscription.status,
-        last_notified_at=None,
-        now=now,
-    )
+    subscription.last_notified_at = payload.last_notified_at
+    if "next_reminder_at" in payload.model_fields_set:
+        subscription.next_reminder_at = payload.next_reminder_at
+    else:
+        subscription.next_reminder_at = calculate_next_reminder(
+            end_at=subscription.end_at,
+            status=subscription.status,
+            last_notified_at=subscription.last_notified_at,
+            now=now,
+        )
     session.add(subscription)
     await session.flush()
     await record_audit_log(
@@ -194,12 +198,18 @@ async def _update_subscription(
         existing_status=previous_status,
         now=now,
     )
-    subscription.next_reminder_at = calculate_next_reminder(
-        end_at=subscription.end_at,
-        status=subscription.status,
-        last_notified_at=subscription.last_notified_at,
-        now=now,
-    )
+    if "last_notified_at" in update_data:
+        subscription.last_notified_at = update_data.get("last_notified_at")
+
+    if "next_reminder_at" in update_data:
+        subscription.next_reminder_at = update_data.get("next_reminder_at")
+    else:
+        subscription.next_reminder_at = calculate_next_reminder(
+            end_at=subscription.end_at,
+            status=subscription.status,
+            last_notified_at=subscription.last_notified_at,
+            now=now,
+        )
 
     await session.flush()
     await record_audit_log(

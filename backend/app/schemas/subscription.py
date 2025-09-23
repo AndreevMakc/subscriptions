@@ -31,6 +31,8 @@ class SubscriptionCreate(SubscriptionBase):
     """Payload for creating a subscription."""
 
     status: SubscriptionStatus | None = None
+    next_reminder_at: datetime | None = None
+    last_notified_at: datetime | None = None
 
 
 class SubscriptionUpdate(BaseModel):
@@ -44,6 +46,8 @@ class SubscriptionUpdate(BaseModel):
     vendor: str | None = Field(default=None, max_length=120)
     notes: str | None = Field(default=None, max_length=5000)
     status: SubscriptionStatus | None = None
+    next_reminder_at: datetime | None = None
+    last_notified_at: datetime | None = None
 
     @field_validator("currency")
     @classmethod

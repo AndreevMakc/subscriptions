@@ -27,6 +27,8 @@ export interface SubscriptionCreatePayload extends Record<string, unknown> {
   category?: string | null
   vendor?: string | null
   notes?: string | null
+  next_reminder_at?: string | null
+  last_notified_at?: string | null
 }
 
 export type SubscriptionUpdatePayload = Partial<SubscriptionCreatePayload>
@@ -41,8 +43,8 @@ const mapSubscription = (payload: ApiSubscription): Subscription => ({
   category: payload.category ?? undefined,
   vendor: payload.vendor ?? undefined,
   notes: payload.notes ?? undefined,
-  nextReminderAt: payload.next_reminder_at ?? undefined,
-  lastNotifiedAt: payload.last_notified_at ?? undefined,
+  nextReminderAt: payload.next_reminder_at,
+  lastNotifiedAt: payload.last_notified_at,
   createdAt: payload.created_at,
   updatedAt: payload.updated_at,
 })

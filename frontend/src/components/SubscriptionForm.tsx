@@ -73,8 +73,12 @@ const SubscriptionForm = ({ subscription, settings, onSubmit, onCancel, submitLa
       vendor: values.vendor?.trim() || undefined,
       notes: values.notes?.trim() || undefined,
       status: values.status,
-      nextReminderAt: subscription?.nextReminderAt,
-      lastNotifiedAt: subscription?.lastNotifiedAt,
+      ...(subscription?.nextReminderAt !== undefined
+        ? { nextReminderAt: subscription.nextReminderAt }
+        : {}),
+      ...(subscription?.lastNotifiedAt !== undefined
+        ? { lastNotifiedAt: subscription.lastNotifiedAt }
+        : {}),
     }
 
     try {
