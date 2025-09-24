@@ -7,8 +7,8 @@ import StatusBadge from './StatusBadge'
 interface ReminderListProps {
   subscriptions: Subscription[]
   settings: Settings
-  onSnooze: (id: string) => void
-  onClearReminder: (id: string) => void
+  onSnooze: (id: string) => void | Promise<void>
+  onClearReminder: (id: string) => void | Promise<void>
 }
 
 const ReminderList = ({ subscriptions, settings, onSnooze, onClearReminder }: ReminderListProps) => {

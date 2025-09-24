@@ -8,8 +8,9 @@ import { useI18n } from '../i18n'
 const DashboardPage = () => {
   const subscriptions = useStore(selectSubscriptions)
   const settings = useStore(selectSettings)
-  const snooze = useStore((state) => state.snoozeSubscription)
+  const snoozeSubscription = useStore((state) => state.snoozeSubscription)
   const clearReminder = useStore((state) => state.clearReminder)
+  const pushToast = useStore((state) => state.pushToast)
   const { t } = useI18n()
 
   const remindersDue = subscriptions.filter((subscription) => shouldShowInReminders(subscription, settings)).length
@@ -30,8 +31,30 @@ const DashboardPage = () => {
           <ReminderList
             subscriptions={subscriptions}
             settings={settings}
-            onSnooze={snooze}
-            onClearReminder={clearReminder}
+            onSnooze={async (id) => {
+              try {
+                await snoozeSubscription(id)
+              } catch (error) {
+                console.error('Failed to snooze reminder', error)
+                pushToast({
+                  title: t('reminders.toast.snoozeError.title'),
+                  description: t('reminders.toast.snoozeError.description'),
+                  variant: 'error',
+                })
+              }
+            }}
+            onClearReminder={async (id) => {
+              try {
+                await clearReminder(id)
+              } catch (error) {
+                console.error('Failed to clear reminder', error)
+                pushToast({
+                  title: t('reminders.toast.clearError.title'),
+                  description: t('reminders.toast.clearError.description'),
+                  variant: 'error',
+                })
+              }
+            }}
           />
         </div>
         <Sparkline data={sparkline} />

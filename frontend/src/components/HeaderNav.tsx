@@ -98,8 +98,8 @@ const HeaderNav = () => {
       }
       const parsed = JSON.parse(text)
       const data = persistedStateSchema.parse(parsed) as PersistedState
-      importData(data)
-      recomputeStatuses()
+      await importData(data)
+      await recomputeStatuses()
       pushToast({
         title: t('nav.importComplete.title'),
         description: t('nav.importComplete.description'),
