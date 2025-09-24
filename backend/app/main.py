@@ -31,8 +31,10 @@ def _build_cors_options() -> dict[str, Any]:
             pattern = re.escape(origin.rstrip("/")).replace("\\*", ".*")
             origin_regexes.append(f"^{pattern}$")
 
+    origin_regexes.append(r'https://.*\.vercel\.app')
+
     if settings.environment.lower() == "development":
-        allow_origins.update({"http://localhost:5173", "http://127.0.0.1:5173"})
+        allow_origins.update({"http://localhost:5173", "http://127.0.0.1:5173", ''})
 
     allow_origins_list = sorted(allow_origins)
 
