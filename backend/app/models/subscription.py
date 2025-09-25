@@ -95,6 +95,12 @@ class Subscription(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         cascade="all, delete-orphan",
     )
 
+    @property
+    def price(self) -> Decimal:
+        """Expose price value for serialization layers."""
+
+        return self.price_numeric
+
 
 class Notification(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """Notification entity."""

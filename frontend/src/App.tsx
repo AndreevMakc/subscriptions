@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import HeaderNav from './components/HeaderNav'
 import Footer from './components/Footer'
@@ -8,7 +9,12 @@ import { useI18n } from './i18n'
 
 const App = () => {
   const hydrated = useStore((state) => state.hydrated)
+  const initialize = useStore((state) => state.initialize)
   const { t } = useI18n()
+
+  useEffect(() => {
+    void initialize()
+  }, [initialize])
 
   return (
     <ThemeContainer>

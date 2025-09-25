@@ -12,8 +12,8 @@ export interface Subscription {
   category?: string
   vendor?: string
   status: Status
-  nextReminderAt?: string
-  lastNotifiedAt?: string
+  nextReminderAt?: string | null
+  lastNotifiedAt?: string | null
   createdAt: string
   updatedAt: string
 }
