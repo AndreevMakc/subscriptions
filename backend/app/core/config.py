@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     oauth_provider: str | None = Field(default=None, alias="OAUTH_PROVIDER")
     oauth_client_id: str | None = Field(default=None, alias="OAUTH_CLIENT_ID")
     oauth_client_secret: str | None = Field(default=None, alias="OAUTH_CLIENT_SECRET")
+    oauth_authorize_url: str | None = Field(default=None, alias="OAUTH_AUTHORIZE_URL")
+    oauth_token_url: str | None = Field(default=None, alias="OAUTH_TOKEN_URL")
+    oauth_userinfo_url: str | None = Field(default=None, alias="OAUTH_USERINFO_URL")
+    oauth_redirect_uri: str | None = Field(default=None, alias="OAUTH_REDIRECT_URI")
     smtp_host: str | None = Field(default=None, alias="SMTP_HOST")
     smtp_port: int | None = Field(default=None, alias="SMTP_PORT")
     smtp_user: str | None = Field(default=None, alias="SMTP_USER")
@@ -35,6 +39,8 @@ class Settings(BaseSettings):
     refresh_token_expires_minutes: int = Field(
         default=60 * 24 * 30, alias="REFRESH_TOKEN_EXPIRES_MINUTES"
     )
+    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
+    email_verification_hours: int = Field(default=24, alias="EMAIL_VERIFICATION_HOURS")
 
     model_config = SettingsConfigDict(
         env_file=".env",

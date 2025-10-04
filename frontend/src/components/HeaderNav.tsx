@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { ZodError } from 'zod'
 import { persistedStateSchema } from '../utils/validation'
-import { selectSettings, selectSubscriptions, useStore } from '../store/useStore'
+import { selectAuth, selectSettings, selectSubscriptions, useStore } from '../store/useStore'
 import type { PersistedState } from '../types'
 import { useI18n, type TranslationKey } from '../i18n'
 
@@ -29,9 +29,11 @@ const HeaderNav = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const subscriptions = useStore(selectSubscriptions)
   const settings = useStore(selectSettings)
+  const auth = useStore(selectAuth)
   const importData = useStore((state) => state.importData)
   const recomputeStatuses = useStore((state) => state.recomputeStatuses)
   const pushToast = useStore((state) => state.pushToast)
+  const logout = useStore((state) => state.logout)
   const location = useLocation()
   const { t, locale } = useI18n()
   const isRussian = locale === 'ru'
@@ -180,6 +182,34 @@ const HeaderNav = () => {
           ))}
         </nav>
         <div className="flex flex-nowrap items-center gap-2.5">
+          {auth.pendingVerification ? (
+            <span className={clsx('pill-button bg-amber-200 text-amber-900', desktopTextClass, desktopPaddingClass)}>
+              Check email to verify
+            </span>
+          ) : null}
+          {auth.user ? (
+            <span className={clsx('pill-button bg-white/80 text-midnight shadow-card', desktopTextClass, desktopPaddingClass)}>
+              {auth.user.email}
+            </span>
+          ) : null}
+          <NavLink
+            to="/login"
+            className={clsx(
+              'pill-button flex items-center gap-2 font-medium transition',
+              desktopTextClass,
+              desktopPaddingClass,
+              auth.user ? 'bg-white/40 text-midnight/80 hover:text-midnight' : 'bg-accent text-white shadow-card hover:bg-accent/90',
+            )}
+            onClick={(event) => {
+              if (auth.user) {
+                event.preventDefault()
+                logout()
+              }
+            }}
+            aria-disabled={auth.isAuthenticating && !auth.user}
+          >
+            {auth.user ? 'Sign out' : auth.isAuthenticating ? 'Redirecting…' : 'Sign in'}
+          </NavLink>
           <button
             type="button"
             className={clsx(
@@ -283,6 +313,24 @@ const HeaderNav = () => {
                   ))}
                 </nav>
                 <div className="flex flex-col gap-1.5">
+                  {auth.pendingVerification ? (
+                    <div className="pill-button bg-amber-200 px-3.5 py-2.5 text-[13px] font-medium text-amber-900">
+                      Verify your email to finish signing in
+                    </div>
+                  ) : null}
+                  <NavLink
+                    to="/login"
+                    className="pill-button flex items-center gap-2.5 bg-white/60 px-3.5 py-2.5 text-[13px] leading-5 font-medium text-midnight/80 hover:text-midnight"
+                    onClick={(event) => {
+                      setMobileMenuOpen(false)
+                      if (auth.user) {
+                        event.preventDefault()
+                        logout()
+                      }
+                    }}
+                  >
+                    <span>{auth.user ? 'Sign out' : auth.isAuthenticating ? 'Redirecting…' : 'Sign in'}</span>
+                  </NavLink>
                   <button
                     type="button"
                     className="pill-button flex items-center gap-2.5 bg-white/60 px-3.5 py-2.5 text-[13px] leading-5 font-medium text-midnight/80 hover:text-midnight"

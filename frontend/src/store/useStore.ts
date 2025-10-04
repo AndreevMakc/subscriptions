@@ -12,6 +12,15 @@ import {
   type SubscriptionUpdatePayload,
   updateSubscriptionStatus as apiUpdateSubscriptionStatus,
 } from '../api/subscriptions'
+import {
+  exchangeCode,
+  refreshTokens,
+  startLogin,
+  type CallbackResponse,
+  type TokenPair,
+} from '../api/auth'
+import { setAuthTokens, getStoredTokens } from '../utils/authTokens'
+import { ApiError } from '../api/client'
 
 export type ToastVariant = 'info' | 'success' | 'error'
 
@@ -43,6 +52,12 @@ interface StoreState {
   ui: {
     toasts: ToastMessage[]
   }
+  auth: {
+    user: CallbackResponse['user'] | null
+    tokens: TokenPair | null
+    pendingVerification: boolean
+    isAuthenticating: boolean
+  }
   initialize: () => Promise<void>
   addSubscription: (input: SubscriptionDraft) => Promise<Subscription>
   updateSubscription: (id: string, input: Partial<SubscriptionDraft>) => Promise<Subscription | null>
@@ -56,6 +71,10 @@ interface StoreState {
   recomputeStatuses: () => Promise<void>
   pushToast: (toast: Omit<ToastMessage, 'id'> & { id?: string }) => void
   dismissToast: (id: string) => void
+  beginLogin: () => Promise<void>
+  completeLogin: (state: string, code: string) => Promise<void>
+  refreshAuth: () => Promise<void>
+  logout: () => void
 }
 
 const toCreatePayload = (input: SubscriptionDraft): SubscriptionCreatePayload => {
@@ -112,6 +131,8 @@ export const useStore = create<StoreState>()((set, get) => {
     return subscriptions
   }
 
+  const persistedTokens = getStoredTokens() as TokenPair | null
+
   return {
     hydrated: false,
     subscriptions: [],
@@ -119,17 +140,28 @@ export const useStore = create<StoreState>()((set, get) => {
     ui: {
       toasts: [],
     },
+    auth: {
+      user: null,
+      tokens: persistedTokens,
+      pendingVerification: false,
+      isAuthenticating: false,
+    },
     initialize: async () => {
       if (get().hydrated) return
       try {
+        if (get().auth.tokens && !get().auth.user) {
+          await get().refreshAuth()
+        }
         await refreshSubscriptions()
       } catch (error) {
         console.error('Failed to load subscriptions', error)
-        get().pushToast({
-          title: 'Failed to load data',
-          description: 'Could not connect to the subscription service.',
-          variant: 'error',
-        })
+        if (!(error instanceof ApiError && error.status === 401)) {
+          get().pushToast({
+            title: 'Failed to load data',
+            description: 'Could not connect to the subscription service.',
+            variant: 'error',
+          })
+        }
       } finally {
         set({ hydrated: true })
       }
@@ -250,6 +282,90 @@ export const useStore = create<StoreState>()((set, get) => {
     recomputeStatuses: async () => {
       await refreshSubscriptions()
     },
+    beginLogin: async () => {
+      set((state) => ({ auth: { ...state.auth, isAuthenticating: true } }))
+      try {
+        const redirectUri = `${window.location.origin}/auth/callback`
+        const response = await startLogin(redirectUri)
+        window.location.href = response.authorization_url
+      } catch (error) {
+        console.error('Failed to initiate login', error)
+        set((state) => ({ auth: { ...state.auth, isAuthenticating: false } }))
+        get().pushToast({
+          title: 'Login failed',
+          description: 'Could not contact the identity provider.',
+          variant: 'error',
+        })
+      }
+    },
+    completeLogin: async (stateParam, code) => {
+      set((current) => ({ auth: { ...current.auth, isAuthenticating: true } }))
+      try {
+        const response = await exchangeCode(stateParam, code)
+        setAuthTokens(response.tokens)
+        set((current) => ({
+          auth: {
+            user: response.user,
+            tokens: response.tokens,
+            pendingVerification: response.pending_verification,
+            isAuthenticating: false,
+          },
+        }))
+        if (response.tokens) {
+          await refreshSubscriptions()
+        } else {
+          get().pushToast({
+            title: 'Email verification required',
+            description: 'Check your inbox to confirm the address before continuing.',
+            variant: 'info',
+          })
+        }
+      } catch (error) {
+        console.error('Failed to complete login', error)
+        set((current) => ({ auth: { ...current.auth, isAuthenticating: false } }))
+        get().pushToast({
+          title: 'Login failed',
+          description: 'Authentication could not be completed.',
+          variant: 'error',
+        })
+      }
+    },
+    refreshAuth: async () => {
+      const tokens = get().auth.tokens
+      if (!tokens) return
+      try {
+        const response = await refreshTokens(tokens.refresh_token)
+        setAuthTokens(response.tokens)
+        set((state) => ({
+          auth: {
+            ...state.auth,
+            tokens: response.tokens,
+            user: response.user,
+            pendingVerification: false,
+          },
+        }))
+      } catch (error) {
+        console.error('Refresh token failed', error)
+        get().logout()
+        get().pushToast({
+          title: 'Session expired',
+          description: 'Please sign in again to continue.',
+          variant: 'info',
+        })
+      }
+    },
+    logout: () => {
+      setAuthTokens(null)
+      set((state) => ({
+        auth: {
+          user: null,
+          tokens: null,
+          pendingVerification: false,
+          isAuthenticating: false,
+        },
+        subscriptions: [],
+      }))
+    },
     pushToast: (toast) => {
       const id = toast.id ?? createId()
       set((state) => {
@@ -278,3 +394,4 @@ export const useHydratedStore = <T,>(selector: (state: StoreState) => T, fallbac
 export const selectSubscriptions = (state: StoreState) => state.subscriptions
 export const selectSettings = (state: StoreState) => state.settings
 export const selectToasts = (state: StoreState) => state.ui.toasts
+export const selectAuth = (state: StoreState) => state.auth
