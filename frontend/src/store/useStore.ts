@@ -303,7 +303,7 @@ export const useStore = create<StoreState>()((set, get) => {
       try {
         const response = await exchangeCode(stateParam, code)
         setAuthTokens(response.tokens)
-        set((current) => ({
+        set(() => ({
           auth: {
             user: response.user,
             tokens: response.tokens,
@@ -356,7 +356,7 @@ export const useStore = create<StoreState>()((set, get) => {
     },
     logout: () => {
       setAuthTokens(null)
-      set((state) => ({
+      set(() => ({
         auth: {
           user: null,
           tokens: null,

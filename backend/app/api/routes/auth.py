@@ -5,7 +5,7 @@ import base64
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, TypedDict
+from typing import Any, Callable, Mapping, TypedDict
 from urllib.parse import urlencode
 
 import httpx
@@ -64,6 +64,9 @@ DEFAULT_PROVIDER_CONFIG: Mapping[OAuthProvider, ProviderConfig] = {
 }
 
 
+PLACEHOLDER_CLIENT_IDS = {"demo-client", "your-client-id", "your_client_id"}
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -116,8 +119,11 @@ async def _exchange_code_for_tokens(
     redirect_uri: str,
     code_verifier: str | None,
 ) -> dict[str, Any]:
-    if not settings.oauth_client_id:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="OAuth client id is not configured")
+    if not settings.oauth_client_id or settings.oauth_client_id in PLACEHOLDER_CLIENT_IDS:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OAuth client id is not configured. Set OAUTH_CLIENT_ID to a real value.",
+        )
 
     data: dict[str, Any] = {
         "client_id": settings.oauth_client_id,
@@ -188,6 +194,63 @@ def _extract_provider_user_id(profile: Mapping[str, Any]) -> str:
     raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="OAuth provider response missing user id")
 
 
+async def _resolve_user_email(
+    provider: OAuthProvider,
+    profile: Mapping[str, Any],
+    access_token: str,
+) -> tuple[str | None, bool]:
+    email = profile.get("email")
+    if email:
+        return str(email), _email_verified_from_profile(profile)
+
+    if provider is OAuthProvider.github:
+        fallback = await _fetch_github_primary_email(access_token)
+        if fallback:
+            return fallback
+
+    return None, False
+
+
+async def _fetch_github_primary_email(access_token: str) -> tuple[str, bool] | None:
+    async with httpx.AsyncClient(timeout=10) as client:
+        response = await client.get(
+            "https://api.github.com/user/emails",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/vnd.github+json",
+            },
+        )
+
+    if response.status_code >= 400:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to fetch GitHub email addresses")
+
+    payload = response.json()
+    if not isinstance(payload, list):
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Unexpected GitHub email payload")
+
+    def select_email(predicate: Callable[[Mapping[str, Any]], bool]) -> tuple[str, bool] | None:
+        for item in payload:
+            if not isinstance(item, Mapping):
+                continue
+            if not predicate(item):
+                continue
+            address = item.get("email")
+            if address:
+                return str(address), bool(item.get("verified", False))
+        return None
+
+    for chooser in (
+        lambda item: bool(item.get("primary")) and bool(item.get("verified")),
+        lambda item: bool(item.get("verified")),
+        lambda item: True,
+    ):
+        result = select_email(chooser)
+        if result:
+            return result
+
+    return None
+
+
 @router.get("/login", response_model=AuthLoginResponse, summary="Initiate OAuth login")
 async def login(
     redirect_uri: str | None = Query(None, description="OAuth redirect URI"),
@@ -202,8 +265,11 @@ async def login(
     effective_redirect = redirect_uri or settings.oauth_redirect_uri
     if not effective_redirect:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="redirect_uri is required")
-    if not settings.oauth_client_id:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="OAuth client id is not configured")
+    if not settings.oauth_client_id or settings.oauth_client_id in PLACEHOLDER_CLIENT_IDS:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OAuth client id is not configured. Set OAUTH_CLIENT_ID to a real value.",
+        )
 
     verifier, challenge = _create_pkce_pair()
     state = secrets.token_urlsafe(32)
@@ -269,12 +335,11 @@ async def auth_callback(
     )
     profile = await _fetch_userinfo(config, token_payload["access_token"])
 
-    email = profile.get("email")
+    email, email_verified = await _resolve_user_email(provider, profile, token_payload["access_token"])
     if not email:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="OAuth provider response missing email")
 
     provider_user_id = _extract_provider_user_id(profile)
-    email_verified = _email_verified_from_profile(profile)
 
     await session.execute(delete(OAuthState).where(OAuthState.id == oauth_state.id))
 
