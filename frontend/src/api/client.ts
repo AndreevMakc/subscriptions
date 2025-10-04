@@ -1,3 +1,5 @@
+import { getAccessToken } from '../utils/authTokens'
+
 const DEFAULT_BASE_URL = 'https://subscriptions-vq0h.onrender.com'
 
 export class ApiError extends Error {
@@ -29,6 +31,11 @@ export const apiRequest = async <T>(path: string, options: RequestOptions = {}):
   const requestHeaders = new Headers(headers ?? {})
   if (!requestHeaders.has('Accept')) {
     requestHeaders.set('Accept', 'application/json')
+  }
+
+  const accessToken = getAccessToken()
+  if (accessToken && !requestHeaders.has('Authorization')) {
+    requestHeaders.set('Authorization', `Bearer ${accessToken}`)
   }
 
   let requestBody: BodyInit | undefined

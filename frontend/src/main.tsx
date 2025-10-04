@@ -9,6 +9,8 @@ import SubscriptionNewPage from './pages/SubscriptionNewPage'
 import SubscriptionEditPage from './pages/SubscriptionEditPage'
 import ArchivePage from './pages/ArchivePage'
 import SettingsPage from './pages/SettingsPage'
+import LoginPage from './pages/LoginPage'
+import AuthCallbackPage from './pages/AuthCallbackPage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -21,6 +23,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="subscriptions/:id/edit" element={<SubscriptionEditPage />} />
           <Route path="archive" element={<ArchivePage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="auth/callback" element={<AuthCallbackPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

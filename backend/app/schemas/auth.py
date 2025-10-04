@@ -29,10 +29,11 @@ class AuthLoginResponse(BaseModel):
 
 
 class AuthCallbackResponse(BaseModel):
-    """Response returned after successful OAuth callback processing."""
+    """Response returned after processing OAuth callback."""
 
     user: UserRead
-    tokens: TokenPair
+    tokens: TokenPair | None = None
+    pending_verification: bool = False
 
 
 class RefreshTokenRequest(BaseModel):
@@ -48,3 +49,9 @@ class RefreshTokenResponse(BaseModel):
     user: UserRead
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EmailVerificationResponse(BaseModel):
+    """Outcome of email verification flow."""
+
+    verified: bool

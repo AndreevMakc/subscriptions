@@ -31,6 +31,8 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    email_verification_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email_verification_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     tz: Mapped[str] = mapped_column(String(64), default="Europe/Moscow", nullable=False)
     locale: Mapped[str] = mapped_column(String(5), default="ru", nullable=False)
 
@@ -107,6 +109,8 @@ class OAuthState(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     provider: Mapped[OAuthProvider] = mapped_column(oauth_provider_enum)
     state: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     redirect_uri: Mapped[str] = mapped_column(String(1024), nullable=False)
+    code_verifier: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    nonce: Mapped[str | None] = mapped_column(String(255), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
