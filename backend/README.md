@@ -24,7 +24,9 @@ Health check: `GET http://localhost:8000/healthz`.
 | `DATABASE_URL` | Async SQLAlchemy connection string to PostgreSQL (Render exposes `DATABASE_URL`). |
 | `SECRET_KEY` | Secret used for token generation. |
 | `BASE_URL` / `FRONTEND_URL` | Public URLs of backend and frontend services. |
-| `OAUTH_PROVIDER`, `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET` | OAuth/OIDC provider configuration. |
+| `OAUTH_PROVIDER`, `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET` | Default OAuth/OIDC provider configuration (used when provider-specific overrides are absent). |
+| `OAUTH_GOOGLE_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_SECRET` | Optional Google-specific overrides for client credentials. |
+| `OAUTH_GITHUB_CLIENT_ID`, `OAUTH_GITHUB_CLIENT_SECRET` | Optional GitHub-specific overrides for client credentials. |
 | `REDIS_URL` | Redis connection string (for Celery integration). |
 | `SMTP_*`, `EMAIL_FROM` | Outgoing email configuration. |
 | `TELEGRAM_BOT_NAME` | Telegram bot username for deep links. |

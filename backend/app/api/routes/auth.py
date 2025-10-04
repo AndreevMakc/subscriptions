@@ -105,6 +105,32 @@ def _provider_config(provider: OAuthProvider) -> ProviderConfig:
     return base_config
 
 
+def _provider_credentials(provider: OAuthProvider) -> tuple[str, str | None]:
+    client_id: str | None
+    client_secret: str | None
+
+    if provider is OAuthProvider.google:
+        client_id = settings.oauth_google_client_id or settings.oauth_client_id
+        client_secret = settings.oauth_google_client_secret or settings.oauth_client_secret
+    elif provider is OAuthProvider.github:
+        client_id = settings.oauth_github_client_id or settings.oauth_client_id
+        client_secret = settings.oauth_github_client_secret or settings.oauth_client_secret
+    else:
+        client_id = settings.oauth_client_id
+        client_secret = settings.oauth_client_secret
+
+    if not client_id or client_id in PLACEHOLDER_CLIENT_IDS:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                "OAuth client id is not configured for the selected provider. "
+                "Set OAUTH_CLIENT_ID or a provider-specific override."
+            ),
+        )
+
+    return client_id, client_secret
+
+
 def _create_pkce_pair() -> tuple[str, str]:
     verifier = secrets.token_urlsafe(64)
     digest = hashlib.sha256(verifier.encode("utf-8")).digest()
@@ -114,25 +140,22 @@ def _create_pkce_pair() -> tuple[str, str]:
 
 async def _exchange_code_for_tokens(
     *,
+    provider: OAuthProvider,
     code: str,
     config: ProviderConfig,
     redirect_uri: str,
     code_verifier: str | None,
 ) -> dict[str, Any]:
-    if not settings.oauth_client_id or settings.oauth_client_id in PLACEHOLDER_CLIENT_IDS:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="OAuth client id is not configured. Set OAUTH_CLIENT_ID to a real value.",
-        )
+    client_id, client_secret = _provider_credentials(provider)
 
     data: dict[str, Any] = {
-        "client_id": settings.oauth_client_id,
+        "client_id": client_id,
         "code": code,
         "grant_type": "authorization_code",
         "redirect_uri": redirect_uri,
     }
-    if settings.oauth_client_secret:
-        data["client_secret"] = settings.oauth_client_secret
+    if client_secret:
+        data["client_secret"] = client_secret
     if code_verifier:
         data["code_verifier"] = code_verifier
 
@@ -265,11 +288,8 @@ async def login(
     effective_redirect = redirect_uri or settings.oauth_redirect_uri
     if not effective_redirect:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="redirect_uri is required")
-    if not settings.oauth_client_id or settings.oauth_client_id in PLACEHOLDER_CLIENT_IDS:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="OAuth client id is not configured. Set OAUTH_CLIENT_ID to a real value.",
-        )
+
+    client_id, _ = _provider_credentials(selected_provider)
 
     verifier, challenge = _create_pkce_pair()
     state = secrets.token_urlsafe(32)
@@ -289,7 +309,7 @@ async def login(
     await session.commit()
 
     auth_params = {
-        "client_id": settings.oauth_client_id,
+        "client_id": client_id,
         "redirect_uri": effective_redirect,
         "response_type": "code",
         "scope": " ".join(config["scopes"]),
@@ -328,6 +348,7 @@ async def auth_callback(
     config = _provider_config(provider)
 
     token_payload = await _exchange_code_for_tokens(
+        provider=provider,
         code=code,
         config=config,
         redirect_uri=oauth_state.redirect_uri,
