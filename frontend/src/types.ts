@@ -27,6 +27,16 @@ export interface Settings {
   telegramLinked?: boolean
 }
 
+export interface User {
+  id: string
+  email: string
+  email_verified: boolean
+  tz: string
+  locale: string
+  created_at: string
+  updated_at: string
+}
+
 export interface PersistedState {
   subscriptions: Array<
     Omit<Subscription, 'id' | 'createdAt' | 'updatedAt'> & {

@@ -18,6 +18,7 @@ import { persistedStateSchema } from '../utils/validation'
 import { selectSettings, selectSubscriptions, useStore } from '../store/useStore'
 import type { PersistedState } from '../types'
 import { useI18n, type TranslationKey } from '../i18n'
+import { useAuthStore } from '../store/useAuthStore'
 
 const navItems: { to: string; key: TranslationKey; Icon: ComponentType<SVGProps<SVGSVGElement>> }[] = [
   { to: '/', key: 'nav.dashboard', Icon: HomeIcon },
@@ -32,6 +33,8 @@ const HeaderNav = () => {
   const importData = useStore((state) => state.importData)
   const recomputeStatuses = useStore((state) => state.recomputeStatuses)
   const pushToast = useStore((state) => state.pushToast)
+  const user = useAuthStore((state) => state.user)
+  const logout = useAuthStore((state) => state.logout)
   const location = useLocation()
   const { t, locale } = useI18n()
   const isRussian = locale === 'ru'
@@ -237,6 +240,25 @@ const HeaderNav = () => {
           <Cog6ToothIcon aria-hidden="true" className="h-5 w-5 shrink-0" />
           <span className="whitespace-nowrap">{t('nav.settings')}</span>
         </NavLink>
+        {user ? (
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-midnight/70">
+              {user.email}
+            </span>
+            <button
+              type="button"
+              className={clsx(
+                'pill-button flex items-center gap-2 font-medium transition',
+                desktopTextClass,
+                desktopPaddingClass,
+                'bg-white/40 text-midnight/80 hover:text-midnight',
+              )}
+              onClick={logout}
+            >
+              {t('nav.logout')}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {mobileMenuOpen && isClient
@@ -264,6 +286,11 @@ const HeaderNav = () => {
                     <XMarkIcon aria-hidden="true" className="h-5 w-5" />
                   </button>
                 </div>
+                {user ? (
+                  <div className="rounded-2xl bg-white/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-midnight/70">
+                    {user.email}
+                  </div>
+                ) : null}
                 <nav className="flex flex-col gap-1.5">
                   {navItems.map(({ to, key, Icon }) => (
                     <NavLink
@@ -321,6 +348,15 @@ const HeaderNav = () => {
                   <Cog6ToothIcon aria-hidden="true" className="h-4 w-4" />
                   <span className="text-left leading-snug">{t('nav.settings')}</span>
                 </NavLink>
+                {user ? (
+                  <button
+                    type="button"
+                    className="pill-button flex items-center gap-2.5 bg-white/60 px-3.5 py-2.5 text-[13px] font-medium text-midnight/80 hover:text-midnight"
+                    onClick={logout}
+                  >
+                    {t('nav.logout')}
+                  </button>
+                ) : null}
               </div>
             </div>,
             document.body,

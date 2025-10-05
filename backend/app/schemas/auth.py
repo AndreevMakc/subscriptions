@@ -48,3 +48,16 @@ class RefreshTokenResponse(BaseModel):
     user: UserRead
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EmailVerificationRequest(BaseModel):
+    """Payload with verification token from email."""
+
+    token: str = Field(..., min_length=10)
+
+
+class EmailVerificationResponse(BaseModel):
+    """Result for successful email verification."""
+
+    user: UserRead
+    detail: str = Field(default="Email address verified")

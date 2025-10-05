@@ -6,6 +6,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Mapping
 from urllib.parse import urlencode
 
+import logging
+
+import httpx
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +21,8 @@ from app.models.user import Identity, OAuthProvider, OAuthState, User
 from app.schemas.auth import (
     AuthCallbackResponse,
     AuthLoginResponse,
+    EmailVerificationRequest,
+    EmailVerificationResponse,
     RefreshTokenRequest,
     RefreshTokenResponse,
     TokenPair,
@@ -28,6 +34,15 @@ from app.services.auth import (
     get_user_by_refresh_token,
     rotate_session_tokens,
 )
+from app.services.email import EmailDeliveryError
+from app.services.email_verification import (
+    create_verification_token,
+    send_verification_email,
+    verify_token,
+)
+
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -41,6 +56,49 @@ PROVIDER_AUTH_ENDPOINTS: Mapping[OAuthProvider, str] = {
 
 def _current_time() -> datetime:
     return datetime.now(timezone.utc)
+
+
+async def _exchange_google_code(*, code: str, redirect_uri: str) -> tuple[str, str, bool]:
+    """Exchange Google authorization code for user identity."""
+
+    if not settings.oauth_client_id or not settings.oauth_client_secret:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Google OAuth client not configured")
+
+    token_payload = {
+        "client_id": settings.oauth_client_id,
+        "client_secret": settings.oauth_client_secret,
+        "code": code,
+        "grant_type": "authorization_code",
+        "redirect_uri": redirect_uri,
+    }
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        token_response = await client.post("https://oauth2.googleapis.com/token", data=token_payload)
+        if token_response.status_code != status.HTTP_200_OK:
+            logger.warning("Google token exchange failed: %s", token_response.text)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to exchange authorization code")
+        token_data = token_response.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google token response missing access token")
+
+        userinfo_response = await client.get(
+            "https://openidconnect.googleapis.com/v1/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        if userinfo_response.status_code != status.HTTP_200_OK:
+            logger.warning("Google userinfo failed: %s", userinfo_response.text)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to fetch user info")
+        userinfo = userinfo_response.json()
+
+    sub = userinfo.get("sub")
+    email = userinfo.get("email")
+    email_verified = bool(userinfo.get("email_verified", False))
+
+    if not sub or not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incomplete user info")
+
+    return sub, email, email_verified
 
 
 def _default_provider() -> OAuthProvider:
@@ -101,9 +159,9 @@ async def login(
 async def auth_callback(
     state: str = Query(...),
     code: str = Query(...),
-    email: str = Query(...),
-    provider_user_id: str = Query(..., description="Unique user id from provider"),
-    email_verified: bool = Query(default=True),
+    email: str | None = Query(default=None),
+    provider_user_id: str | None = Query(default=None, description="Unique user id from provider"),
+    email_verified: bool | None = Query(default=None),
     session: AsyncSession = Depends(get_db),
 ) -> AuthCallbackResponse:
     """Exchange OAuth callback for tokens and profile."""
@@ -114,6 +172,24 @@ async def auth_callback(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired state")
 
     provider = oauth_state.provider
+
+    if provider == OAuthProvider.google and (email is None or provider_user_id is None):
+        try:
+            provider_user_id, email, email_verified = await _exchange_google_code(
+                code=code,
+                redirect_uri=oauth_state.redirect_uri,
+            )
+        except HTTPException:
+            raise
+        except Exception as exc:  # pragma: no cover - network failures
+            logger.exception("Failed to exchange Google OAuth code")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to exchange code") from exc
+
+    if email is None or provider_user_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing user identity")
+
+    if email_verified is None:
+        email_verified = True
     await session.execute(delete(OAuthState).where(OAuthState.id == oauth_state.id))
 
     identity_stmt = (
@@ -124,8 +200,15 @@ async def auth_callback(
     identity_result = await session.execute(identity_stmt)
     identity_row = identity_result.one_or_none()
 
+    needs_email_verification = False
+    verification_token = None
+
     if identity_row:
         identity, user = identity_row
+        if email_verified and not user.email_verified:
+            user.email_verified = True
+        elif not email_verified and not user.email_verified:
+            needs_email_verification = True
     else:
         user_result = await session.execute(select(User).where(User.email == email))
         user = user_result.scalar_one_or_none()
@@ -133,8 +216,11 @@ async def auth_callback(
             user = User(email=email, email_verified=email_verified)
             session.add(user)
             await session.flush()
+            needs_email_verification = not email_verified
         elif email_verified and not user.email_verified:
             user.email_verified = True
+        elif not email_verified and not user.email_verified:
+            needs_email_verification = True
         identity = Identity(
             user_id=user.id,
             provider=provider,
@@ -142,6 +228,9 @@ async def auth_callback(
         )
         session.add(identity)
         await session.flush()
+
+    if needs_email_verification:
+        verification_token = await create_verification_token(session, user)
 
     user_session = await create_user_session(session, user)
     await record_audit_log(
@@ -153,6 +242,12 @@ async def auth_callback(
         meta={"provider": provider.value, "code": code},
     )
     await session.commit()
+
+    if verification_token is not None:
+        try:
+            send_verification_email(user, verification_token)
+        except EmailDeliveryError:
+            logger.warning("Failed to send verification email to %s", user.email, exc_info=True)
 
     tokens = TokenPair(
         access_token=user_session.access_token,
@@ -184,3 +279,20 @@ async def refresh_tokens(
         refresh_expires_in=settings.refresh_token_expires_minutes * 60,
     )
     return RefreshTokenResponse(tokens=tokens, user=UserRead.model_validate(user))
+
+
+@router.post("/verify-email", response_model=EmailVerificationResponse, summary="Verify email address")
+async def verify_email_address(
+    payload: EmailVerificationRequest,
+    session: AsyncSession = Depends(get_db),
+) -> EmailVerificationResponse:
+    """Confirm email via verification token."""
+
+    try:
+        user = await verify_token(session, payload.token)
+    except ValueError as exc:  # pragma: no cover - validation path
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    await session.commit()
+
+    return EmailVerificationResponse(user=UserRead.model_validate(user))
