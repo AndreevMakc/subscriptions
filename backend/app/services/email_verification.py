@@ -7,6 +7,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from urllib.parse import urlencode, urljoin
+
 from app.core.config import settings
 from app.models.user import EmailVerificationToken, User
 from app.services.email import send_email
@@ -52,7 +54,10 @@ async def create_verification_token(session: AsyncSession, user: User) -> EmailV
 def send_verification_email(user: User, token: EmailVerificationToken) -> None:
     """Send verification email to user if SMTP configured."""
 
-    verification_link = f"{settings.base_url.rstrip('/')}/auth/verify-email?token={token.token}"
+    frontend_base = settings.frontend_url.rstrip("/") + "/"
+    verification_path = urljoin(frontend_base, "auth/verify-email")
+    query = urlencode({"token": token.token})
+    verification_link = f"{verification_path}?{query}"
     body = (
         "Здравствуйте!\n\n"
         "Подтвердите, пожалуйста, вашу почту, перейдя по ссылке:\n"
