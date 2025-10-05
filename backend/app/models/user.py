@@ -96,8 +96,8 @@ class UserSession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    access_token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    refresh_token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    access_token: Mapped[str] = mapped_column(String(1024), unique=True, nullable=False)
+    refresh_token: Mapped[str] = mapped_column(String(1024), unique=True, nullable=False)
     access_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     refresh_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
