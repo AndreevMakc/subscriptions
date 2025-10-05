@@ -11,8 +11,7 @@ from app import models  # noqa: F401  # Ensure models are imported for metadata
 from app.api.routes import api_router
 from app.api.routes.health import router as health_router
 from app.core.config import settings
-from app.db.base import Base
-from app.db.session import get_engine
+from app.db.migrations import run_migrations
 
 
 def _build_cors_options() -> dict[str, Any]:
@@ -59,11 +58,9 @@ def create_application() -> FastAPI:
 
     @app.on_event("startup")
     async def _initialize_database() -> None:
-        """Create database tables if they don't exist."""
+        """Ensure database schema is up-to-date before serving requests."""
 
-        engine = get_engine()
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+        await run_migrations()
 
     app.include_router(health_router)
     app.include_router(api_router)

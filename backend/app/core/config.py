@@ -61,9 +61,9 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def alembic_ini_path(self) -> Path:
-        """Return path to generated Alembic configuration."""
+        """Return path to bundled Alembic configuration."""
 
-        return Path(__file__).resolve().parent.parent / "alembic.ini"
+        return Path(__file__).resolve().parent.parent.parent / "alembic.ini"
 
 
 @lru_cache
