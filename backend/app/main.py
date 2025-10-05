@@ -4,8 +4,9 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from app import models  # noqa: F401  # Ensure models are imported for metadata
 from app.api.routes import api_router
@@ -64,6 +65,12 @@ def create_application() -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(api_router)
+
+    @app.get("/login", include_in_schema=False)
+    async def _redirect_login() -> RedirectResponse:
+        """Preserve legacy `/login` endpoint by redirecting to the API route."""
+
+        return RedirectResponse(url="/api/v1/auth/login", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
     return app
 
 
