@@ -1,15 +1,20 @@
 """Authentication helpers."""
 from __future__ import annotations
 
-import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.models.user import User, UserSession
+from app.services.jwt import (
+    TokenType,
+    TokenValidationError,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
 
 
 def _now() -> datetime:
@@ -19,21 +24,35 @@ def _now() -> datetime:
 
 
 async def create_user_session(session: AsyncSession, user: User) -> UserSession:
-    """Create a new user session with tokens."""
+    """Create a new user session with JWT access and refresh tokens."""
 
-    now = _now()
-    access_expires = now + timedelta(minutes=settings.access_token_expires_minutes)
-    refresh_expires = now + timedelta(minutes=settings.refresh_token_expires_minutes)
+    session_id = uuid.uuid4()
+    access_token, access_expires_at = create_access_token(subject=user.id, session_id=session_id)
+    refresh_token, refresh_expires_at = create_refresh_token(subject=user.id, session_id=session_id)
+
     user_session = UserSession(
+        id=session_id,
         user_id=user.id,
-        access_token=secrets.token_urlsafe(32),
-        refresh_token=secrets.token_urlsafe(48),
-        access_expires_at=access_expires,
-        refresh_expires_at=refresh_expires,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        access_expires_at=access_expires_at,
+        refresh_expires_at=refresh_expires_at,
     )
     session.add(user_session)
     await session.flush()
     return user_session
+
+
+async def _get_session_with_user(
+    session: AsyncSession, session_id: uuid.UUID
+) -> tuple[User, UserSession] | None:
+    result = await session.execute(
+        select(User, UserSession)
+        .join(UserSession, UserSession.user_id == User.id)
+        .where(UserSession.id == session_id)
+    )
+    row = result.one_or_none()
+    return row
 
 
 async def get_user_by_access_token(
@@ -41,16 +60,22 @@ async def get_user_by_access_token(
 ) -> tuple[User, UserSession] | None:
     """Return user and session by access token if valid."""
 
-    now = _now()
-    result = await session.execute(
-        select(User, UserSession)
-        .join(UserSession, UserSession.user_id == User.id)
-        .where(UserSession.access_token == token, UserSession.access_expires_at > now)
-    )
-    row = result.one_or_none()
-    if row:
-        return row
-    return None
+    try:
+        payload = decode_token(token, expected_type=TokenType.access)
+        session_id = uuid.UUID(payload["sid"])
+    except (KeyError, ValueError, TokenValidationError):
+        return None
+
+    row = await _get_session_with_user(session, session_id)
+    if row is None:
+        return None
+
+    user, user_session = row
+    if user_session.access_expires_at <= _now():
+        return None
+    if user_session.access_token != token:
+        return None
+    return user, user_session
 
 
 async def get_user_by_refresh_token(
@@ -58,16 +83,22 @@ async def get_user_by_refresh_token(
 ) -> tuple[User, UserSession] | None:
     """Return user and session by refresh token if valid."""
 
-    now = _now()
-    result = await session.execute(
-        select(User, UserSession)
-        .join(UserSession, UserSession.user_id == User.id)
-        .where(UserSession.refresh_token == token, UserSession.refresh_expires_at > now)
-    )
-    row = result.one_or_none()
-    if row:
-        return row
-    return None
+    try:
+        payload = decode_token(token, expected_type=TokenType.refresh)
+        session_id = uuid.UUID(payload["sid"])
+    except (KeyError, ValueError, TokenValidationError):
+        return None
+
+    row = await _get_session_with_user(session, session_id)
+    if row is None:
+        return None
+
+    user, user_session = row
+    if user_session.refresh_expires_at <= _now():
+        return None
+    if user_session.refresh_token != token:
+        return None
+    return user, user_session
 
 
 async def rotate_session_tokens(
@@ -76,11 +107,12 @@ async def rotate_session_tokens(
 ) -> UserSession:
     """Rotate access and refresh tokens for session."""
 
-    now = _now()
-    user_session.access_token = secrets.token_urlsafe(32)
-    user_session.refresh_token = secrets.token_urlsafe(48)
-    user_session.access_expires_at = now + timedelta(minutes=settings.access_token_expires_minutes)
-    user_session.refresh_expires_at = now + timedelta(minutes=settings.refresh_token_expires_minutes)
+    new_access, access_expires_at = create_access_token(subject=user_session.user_id, session_id=user_session.id)
+    new_refresh, refresh_expires_at = create_refresh_token(subject=user_session.user_id, session_id=user_session.id)
+    user_session.access_token = new_access
+    user_session.refresh_token = new_refresh
+    user_session.access_expires_at = access_expires_at
+    user_session.refresh_expires_at = refresh_expires_at
     await session.flush()
     return user_session
 

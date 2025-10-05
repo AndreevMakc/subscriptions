@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     refresh_token_expires_minutes: int = Field(
         default=60 * 24 * 30, alias="REFRESH_TOKEN_EXPIRES_MINUTES"
     )
+    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
 
     model_config = SettingsConfigDict(
         env_file=".env",

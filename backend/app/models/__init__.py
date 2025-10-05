@@ -9,6 +9,7 @@ from app.models.subscription import (
     SubscriptionStatus,
 )
 from app.models.user import (
+    EmailVerificationToken,
     Identity,
     OAuthProvider,
     OAuthState,
@@ -21,6 +22,7 @@ from app.models.user import (
 __all__ = [
     "AuditAction",
     "AuditLog",
+    "EmailVerificationToken",
     "Identity",
     "Notification",
     "NotificationChannel",

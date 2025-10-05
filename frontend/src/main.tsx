@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './index.css'
 import App from './App'
+import LoginPage from './pages/LoginPage'
+import AuthCallbackPage from './pages/AuthCallbackPage'
+import EmailVerificationPage from './pages/EmailVerificationPage'
 import DashboardPage from './pages/DashboardPage'
 import SubscriptionsPage from './pages/SubscriptionsPage'
 import SubscriptionNewPage from './pages/SubscriptionNewPage'
@@ -14,6 +17,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/auth/verify-email" element={<EmailVerificationPage />} />
         <Route path="/" element={<App />}>
           <Route index element={<DashboardPage />} />
           <Route path="subscriptions" element={<SubscriptionsPage />} />
