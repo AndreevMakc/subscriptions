@@ -241,8 +241,8 @@ const HeaderNav = () => {
           <span className="whitespace-nowrap">{t('nav.settings')}</span>
         </NavLink>
         {user ? (
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-midnight/70">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="max-w-[220px] truncate rounded-full bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-midnight/70">
               {user.email}
             </span>
             <button
@@ -287,7 +287,7 @@ const HeaderNav = () => {
                   </button>
                 </div>
                 {user ? (
-                  <div className="rounded-2xl bg-white/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-midnight/70">
+                  <div className="break-words rounded-2xl bg-white/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-midnight/70">
                     {user.email}
                   </div>
                 ) : null}
