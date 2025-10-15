@@ -40,6 +40,7 @@ const HeaderNav = () => {
   const isRussian = locale === 'ru'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isClient, setIsClient] = useState(false)
+  const isLongDesktopEmail = (user?.email?.length ?? 0) > 40
   const desktopTextClass = isRussian
     ? 'text-sm leading-tight xl:text-base'
     : 'text-[13px] leading-tight xl:text-sm 2xl:text-base'
@@ -171,9 +172,35 @@ const HeaderNav = () => {
             {mobileMenuOpen ? <XMarkIcon aria-hidden="true" className="h-6 w-6" /> : <Bars3Icon aria-hidden="true" className="h-6 w-6" />}
           </button>
         </div>
+        {user ? (
+          <div className="hidden min-w-0 flex-wrap items-center justify-end gap-2 lg:flex">
+            <span
+              className={clsx(
+                'inline-flex items-center justify-center rounded-full bg-white/50 px-3 py-1 font-semibold uppercase tracking-wide text-midnight/70 shadow-inner-soft',
+                isLongDesktopEmail
+                  ? 'max-w-[min(24rem,100%)] text-[11px] leading-4'
+                  : 'text-xs leading-5'
+              )}
+            >
+              {user.email}
+            </span>
+            <button
+              type="button"
+              className={clsx(
+                'pill-button flex items-center gap-2 font-medium transition',
+                desktopTextClass,
+                desktopPaddingClass,
+                'bg-white/40 text-midnight/80 hover:text-midnight',
+              )}
+              onClick={logout}
+            >
+              {t('nav.logout')}
+            </button>
+          </div>
+        ) : null}
       </div>
 
-      <div className="hidden w-full items-center justify-end gap-3 lg:flex lg:gap-4">
+      <div className="hidden w-full flex-wrap items-center justify-end gap-3 lg:flex lg:gap-4">
         <nav className="flex flex-nowrap items-center gap-2.5">
           {navItems.map(({ to, key, Icon }) => (
             <NavLink key={to} to={to} className={desktopNavLinkClasses} end={to === '/'}>
@@ -240,25 +267,6 @@ const HeaderNav = () => {
           <Cog6ToothIcon aria-hidden="true" className="h-5 w-5 shrink-0" />
           <span className="whitespace-nowrap">{t('nav.settings')}</span>
         </NavLink>
-        {user ? (
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-midnight/70">
-              {user.email}
-            </span>
-            <button
-              type="button"
-              className={clsx(
-                'pill-button flex items-center gap-2 font-medium transition',
-                desktopTextClass,
-                desktopPaddingClass,
-                'bg-white/40 text-midnight/80 hover:text-midnight',
-              )}
-              onClick={logout}
-            >
-              {t('nav.logout')}
-            </button>
-          </div>
-        ) : null}
       </div>
 
       {mobileMenuOpen && isClient
@@ -287,7 +295,7 @@ const HeaderNav = () => {
                   </button>
                 </div>
                 {user ? (
-                  <div className="rounded-2xl bg-white/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-midnight/70">
+                  <div className="break-words rounded-2xl bg-white/60 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-midnight/70">
                     {user.email}
                   </div>
                 ) : null}
