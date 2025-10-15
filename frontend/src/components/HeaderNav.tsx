@@ -173,7 +173,7 @@ const HeaderNav = () => {
         </div>
       </div>
 
-      <div className="hidden w-full items-center justify-end gap-3 lg:flex lg:gap-4">
+      <div className="hidden w-full flex-wrap items-center justify-end gap-3 lg:flex lg:gap-4">
         <nav className="flex flex-nowrap items-center gap-2.5">
           {navItems.map(({ to, key, Icon }) => (
             <NavLink key={to} to={to} className={desktopNavLinkClasses} end={to === '/'}>
@@ -242,7 +242,7 @@ const HeaderNav = () => {
         </NavLink>
         {user ? (
           <div className="flex min-w-0 items-center gap-2">
-            <span className="max-w-[220px] truncate rounded-full bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-midnight/70">
+            <span className="max-w-[180px] truncate rounded-full bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-midnight/70">
               {user.email}
             </span>
             <button
