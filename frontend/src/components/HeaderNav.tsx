@@ -40,6 +40,7 @@ const HeaderNav = () => {
   const isRussian = locale === 'ru'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isClient, setIsClient] = useState(false)
+  const isLongDesktopEmail = (user?.email?.length ?? 0) > 40
   const desktopTextClass = isRussian
     ? 'text-sm leading-tight xl:text-base'
     : 'text-[13px] leading-tight xl:text-sm 2xl:text-base'
@@ -172,8 +173,15 @@ const HeaderNav = () => {
           </button>
         </div>
         {user ? (
-          <div className="hidden min-w-0 items-center gap-2 lg:flex">
-            <span className="max-w-[180px] truncate rounded-full bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-midnight/70">
+          <div className="hidden min-w-0 flex-wrap items-center justify-end gap-2 lg:flex">
+            <span
+              className={clsx(
+                'inline-flex items-center justify-center rounded-full bg-white/50 px-3 py-1 font-semibold uppercase tracking-wide text-midnight/70 shadow-inner-soft',
+                isLongDesktopEmail
+                  ? 'max-w-[min(24rem,100%)] text-[11px] leading-4'
+                  : 'text-xs leading-5'
+              )}
+            >
               {user.email}
             </span>
             <button
