@@ -171,6 +171,25 @@ const HeaderNav = () => {
             {mobileMenuOpen ? <XMarkIcon aria-hidden="true" className="h-6 w-6" /> : <Bars3Icon aria-hidden="true" className="h-6 w-6" />}
           </button>
         </div>
+        {user ? (
+          <div className="hidden min-w-0 items-center gap-2 lg:flex">
+            <span className="max-w-[180px] truncate rounded-full bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-midnight/70">
+              {user.email}
+            </span>
+            <button
+              type="button"
+              className={clsx(
+                'pill-button flex items-center gap-2 font-medium transition',
+                desktopTextClass,
+                desktopPaddingClass,
+                'bg-white/40 text-midnight/80 hover:text-midnight',
+              )}
+              onClick={logout}
+            >
+              {t('nav.logout')}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="hidden w-full flex-wrap items-center justify-end gap-3 lg:flex lg:gap-4">
@@ -240,25 +259,6 @@ const HeaderNav = () => {
           <Cog6ToothIcon aria-hidden="true" className="h-5 w-5 shrink-0" />
           <span className="whitespace-nowrap">{t('nav.settings')}</span>
         </NavLink>
-        {user ? (
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="max-w-[180px] truncate rounded-full bg-white/50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-midnight/70">
-              {user.email}
-            </span>
-            <button
-              type="button"
-              className={clsx(
-                'pill-button flex items-center gap-2 font-medium transition',
-                desktopTextClass,
-                desktopPaddingClass,
-                'bg-white/40 text-midnight/80 hover:text-midnight',
-              )}
-              onClick={logout}
-            >
-              {t('nav.logout')}
-            </button>
-          </div>
-        ) : null}
       </div>
 
       {mobileMenuOpen && isClient
