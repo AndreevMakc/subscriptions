@@ -1,24 +1,27 @@
-"""Telegram linking endpoints."""
+"""Telegram linking and webhook endpoints."""
 from __future__ import annotations
 
-import secrets
-from datetime import timedelta
+from json import JSONDecodeError
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from telegram import Update
 
 from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.models.subscription import AuditAction
-from app.models.user import TelegramAccount, TelegramLinkToken, User
+from app.models.user import User
 from app.schemas.telegram import (
     TelegramLinkCompleteRequest,
     TelegramLinkCompleteResponse,
     TelegramLinkTokenResponse,
 )
 from app.services.audit import record_audit_log
-from app.services.subscriptions import current_time
+from app.services.telegram_bot import ensure_application_ready, process_update
+from app.services.telegram_link import (
+    complete_telegram_link,
+    create_link_token as create_link_token_service,
+)
 
 router = APIRouter(prefix="/api/v1/telegram", tags=["telegram"])
 
@@ -36,15 +39,7 @@ async def create_link_token(
 ) -> TelegramLinkTokenResponse:
     """Create one-time Telegram linking token for authenticated user."""
 
-    token = secrets.token_urlsafe(16)
-    expires_at = current_time() + timedelta(minutes=10)
-    link_token = TelegramLinkToken(
-        user_id=current_user.id,
-        token=token,
-        expires_at=expires_at,
-    )
-    session.add(link_token)
-    await session.flush()
+    link_token = await create_link_token_service(session, user_id=current_user.id)
     await record_audit_log(
         session,
         user_id=current_user.id,
@@ -54,8 +49,12 @@ async def create_link_token(
     )
     await session.commit()
 
-    deep_link = _build_deep_link(token)
-    return TelegramLinkTokenResponse(token=token, expires_at=expires_at, deep_link=deep_link)
+    deep_link = _build_deep_link(link_token.token)
+    return TelegramLinkTokenResponse(
+        token=link_token.token,
+        expires_at=link_token.expires_at,
+        deep_link=deep_link,
+    )
 
 
 @router.post("/link", response_model=TelegramLinkCompleteResponse, summary="Confirm Telegram link")
@@ -65,36 +64,17 @@ async def complete_link(
 ) -> TelegramLinkCompleteResponse:
     """Confirm Telegram linking using token from Telegram deep-link."""
 
-    result = await session.execute(
-        select(TelegramLinkToken).where(TelegramLinkToken.token == payload.token)
+    account = await complete_telegram_link(
+        session,
+        token=payload.token,
+        chat_id=payload.telegram_chat_id,
     )
-    link_token = result.scalar_one_or_none()
-    now = current_time()
-    if link_token is None or link_token.expires_at < now or link_token.used_at is not None:
+    if account is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired link token")
 
-    link_token.used_at = now
-    account_result = await session.execute(
-        select(TelegramAccount).where(TelegramAccount.user_id == link_token.user_id)
-    )
-    account = account_result.scalar_one_or_none()
-    if account is None:
-        account = TelegramAccount(
-            user_id=link_token.user_id,
-            telegram_chat_id=payload.telegram_chat_id,
-            linked_at=now,
-            is_active=True,
-        )
-        session.add(account)
-    else:
-        account.telegram_chat_id = payload.telegram_chat_id
-        account.linked_at = now
-        account.is_active = True
-
-    await session.flush()
     await record_audit_log(
         session,
-        user_id=link_token.user_id,
+        user_id=account.user_id,
         action=AuditAction.telegram_link_completed,
         entity="telegram_account",
         entity_id=account.id,
@@ -103,3 +83,25 @@ async def complete_link(
     await session.refresh(account)
 
     return TelegramLinkCompleteResponse.model_validate(account)
+
+
+@router.post("/webhook", status_code=status.HTTP_204_NO_CONTENT, summary="Telegram webhook receiver")
+async def telegram_webhook(request: Request) -> Response:
+    """Process webhook updates from Telegram with header validation."""
+
+    if not settings.telegram_bot_token or not settings.telegram_webhook_secret:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Telegram bot not configured")
+
+    secret_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+    if secret_token != settings.telegram_webhook_secret:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid webhook signature")
+
+    try:
+        payload = await request.json()
+    except JSONDecodeError as exc:  # pragma: no cover - FastAPI validated
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Malformed payload") from exc
+
+    application = await ensure_application_ready()
+    update = Update.de_json(data=payload, bot=application.bot)
+    await process_update(update)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

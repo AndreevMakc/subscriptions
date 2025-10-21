@@ -65,6 +65,14 @@ def create_application() -> FastAPI:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
+    @app.on_event("shutdown")
+    async def _shutdown_integrations() -> None:
+        """Release external integration resources on shutdown."""
+
+        from app.services.telegram_bot import shutdown_application
+
+        await shutdown_application()
+
     app.include_router(health_router)
     app.include_router(api_router)
     return app

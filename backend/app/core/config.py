@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     smtp_password: str | None = Field(default=None, alias="SMTP_PASSWORD")
     email_from: str | None = Field(default=None, alias="EMAIL_FROM")
     telegram_bot_name: str | None = Field(default=None, alias="TELEGRAM_BOT_NAME")
+    telegram_bot_token: str | None = Field(default=None, alias="TELEGRAM_BOT_TOKEN")
+    telegram_webhook_secret: str | None = Field(default=None, alias="TELEGRAM_WEBHOOK_SECRET")
+    telegram_webhook_path: str = Field(default="/api/v1/telegram/webhook", alias="TELEGRAM_WEBHOOK_PATH")
     access_token_expires_minutes: int = Field(
         default=15, alias="ACCESS_TOKEN_EXPIRES_MINUTES"
     )
