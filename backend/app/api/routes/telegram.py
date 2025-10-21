@@ -18,7 +18,10 @@ from app.schemas.telegram import (
 )
 from app.services.audit import record_audit_log
 from app.services.telegram_bot import ensure_application_ready, process_update
-from app.services.telegram_link import complete_telegram_link, create_link_token
+from app.services.telegram_link import (
+    complete_telegram_link,
+    create_link_token as create_link_token_service,
+)
 
 router = APIRouter(prefix="/api/v1/telegram", tags=["telegram"])
 
@@ -36,7 +39,7 @@ async def create_link_token(
 ) -> TelegramLinkTokenResponse:
     """Create one-time Telegram linking token for authenticated user."""
 
-    link_token = await create_link_token(session, user_id=current_user.id)
+    link_token = await create_link_token_service(session, user_id=current_user.id)
     await record_audit_log(
         session,
         user_id=current_user.id,
