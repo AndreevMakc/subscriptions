@@ -151,19 +151,19 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         async def _link(session: AsyncSession) -> str | None:
             account = await complete_telegram_link(session, token=token, chat_id=chat_id)
-        if account is None:
-            return "Не удалось привязать аккаунт. Проверьте ссылку и попробуйте ещё раз."
-        user_result = await session.get(User, account.user_id)
-        assert user_result is not None
-        await record_audit_log(
-            session,
-            user_id=account.user_id,
-            action=AuditAction.telegram_link_completed,
-            entity="telegram_account",
-            entity_id=account.id,
-        )
-        await session.commit()
-        return "Аккаунт успешно привязан! Теперь вы будете получать напоминания в Telegram."
+            if account is None:
+                return "Не удалось привязать аккаунт. Проверьте ссылку и попробуйте ещё раз."
+            user_result = await session.get(User, account.user_id)
+            assert user_result is not None
+            await record_audit_log(
+                session,
+                user_id=account.user_id,
+                action=AuditAction.telegram_link_completed,
+                entity="telegram_account",
+                entity_id=account.id,
+            )
+            await session.commit()
+            return "Аккаунт успешно привязан! Теперь вы будете получать напоминания в Telegram."
 
         text = await _with_session(_link)
         if text:
