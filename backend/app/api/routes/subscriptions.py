@@ -112,6 +112,7 @@ async def create_subscription(
             status=subscription.status,
             last_notified_at=subscription.last_notified_at,
             now=now,
+            user_timezone=current_user.tz,
         )
     session.add(subscription)
     await session.flush()
@@ -209,6 +210,7 @@ async def _update_subscription(
             status=subscription.status,
             last_notified_at=subscription.last_notified_at,
             now=now,
+            user_timezone=current_user.tz,
         )
 
     await session.flush()
@@ -251,11 +253,11 @@ async def snooze_subscription(
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Subscription:
-    """Postpone next reminder by one day."""
+    """Postpone next reminder by seven days."""
 
     subscription = await _get_subscription_or_404(session, subscription_id, current_user.id)
     now = current_time()
-    subscription.next_reminder_at = now + timedelta(days=1)
+    subscription.next_reminder_at = now + timedelta(days=7)
     await session.flush()
     await record_audit_log(
         session,
@@ -292,6 +294,7 @@ async def update_subscription_status(
         status=subscription.status,
         last_notified_at=subscription.last_notified_at,
         now=now,
+        user_timezone=current_user.tz,
     )
     await session.flush()
     await record_audit_log(
