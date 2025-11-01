@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
@@ -25,7 +26,12 @@ def get_engine() -> AsyncEngine:
     global _engine, _SessionLocal
     if _engine is None:
         try:
-            _engine = create_async_engine(settings.database_url, echo=False, future=True)
+            _engine = create_async_engine(
+                settings.database_url,
+                echo=False,
+                future=True,
+                poolclass=NullPool,
+            )
         except (ModuleNotFoundError, NoSuchModuleError) as exc:
             fallback_engine = _create_engine_with_fallback(exc)
             if fallback_engine is None:
@@ -59,7 +65,12 @@ def _create_engine_with_fallback(exc: Exception) -> AsyncEngine | None:
         settings.database_url,
     )
     fallback_url = url.set(drivername="postgresql+psycopg")
-    return create_async_engine(fallback_url, echo=False, future=True)
+    return create_async_engine(
+        fallback_url,
+        echo=False,
+        future=True,
+        poolclass=NullPool,
+    )
 
 
 def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
