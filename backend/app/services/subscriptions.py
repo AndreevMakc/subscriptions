@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, ROUND_HALF_UP
+from zoneinfo import ZoneInfo
 
 from app.models.subscription import Subscription, SubscriptionStatus
 
@@ -40,33 +41,47 @@ def resolve_subscription_status(
     return status
 
 
+def _resolve_zone(user_timezone: str | None) -> ZoneInfo:
+    try:
+        return ZoneInfo(user_timezone or "Europe/Moscow")
+    except Exception:  # pragma: no cover - fallback for invalid tz
+        return ZoneInfo("Europe/Moscow")
+
+
 def calculate_next_reminder(
     *,
     end_at: datetime,
     status: SubscriptionStatus,
     last_notified_at: datetime | None,
     now: datetime | None = None,
+    user_timezone: str | None = None,
 ) -> datetime | None:
     """Compute next reminder timestamp based on business logic."""
 
-    now = now or current_time()
     if status in {SubscriptionStatus.canceled, SubscriptionStatus.archived}:
         return None
 
-    prewindow_start = end_at - timedelta(days=7)
-    if now < prewindow_start:
-        return prewindow_start
-    if end_at > now >= prewindow_start:
-        return now
+    tz = _resolve_zone(user_timezone)
+    now_utc = now or current_time()
+    localized_now = now_utc.astimezone(tz)
+    localized_end = end_at.astimezone(tz)
 
-    reference = last_notified_at or end_at
+    prewindow_start = localized_end - timedelta(days=7)
+    if localized_now < prewindow_start:
+        return prewindow_start.astimezone(timezone.utc)
+    if localized_end > localized_now >= prewindow_start:
+        return localized_now.astimezone(timezone.utc)
+
+    reference = (last_notified_at.astimezone(tz) if last_notified_at else localized_end)
     next_time = reference
-    while next_time <= now:
-        next_time = next_time + timedelta(days=1)
-    return next_time
+    while next_time <= localized_now:
+        next_time = next_time + timedelta(days=7)
+    return next_time.astimezone(timezone.utc)
 
 
-def apply_business_rules(subscription: Subscription, now: datetime | None = None) -> None:
+def apply_business_rules(
+    subscription: Subscription, now: datetime | None = None, user_timezone: str | None = None
+) -> None:
     """Update subscription fields according to business rules."""
 
     now = now or current_time()
@@ -81,4 +96,5 @@ def apply_business_rules(subscription: Subscription, now: datetime | None = None
         status=subscription.status,
         last_notified_at=subscription.last_notified_at,
         now=now,
+        user_timezone=user_timezone,
     )
