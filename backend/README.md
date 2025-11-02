@@ -30,6 +30,15 @@ Health check: `GET http://localhost:8000/healthz`.
 | `TELEGRAM_BOT_NAME` | Telegram bot username for deep links. |
 | `ACCESS_TOKEN_EXPIRES_MINUTES`, `REFRESH_TOKEN_EXPIRES_MINUTES` | Token lifetime settings. |
 
+## Background workers
+
+Celery worker and beat are required for processing and scheduling reminders:
+
+```bash
+poetry run celery -A app.workers.celery_app worker -l info
+poetry run celery -A app.workers.celery_app beat -l info
+```
+
 ## API (v1)
 
 * `GET /api/v1/users/me` – current user profile.

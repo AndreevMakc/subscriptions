@@ -306,7 +306,7 @@ async def handle_callback_action(update: Update, context: ContextTypes.DEFAULT_T
             meta = {"action": "extend", "amount": "+1y"}
             audit_action = AuditAction.subscription_updated
         elif action == "snooze":
-            subscription.next_reminder_at = now + timedelta(days=1)
+            subscription.next_reminder_at = now + timedelta(days=7)
             meta = {"action": "snooze"}
             audit_action = AuditAction.subscription_snoozed
         elif action == "cancel":
@@ -328,6 +328,7 @@ async def handle_callback_action(update: Update, context: ContextTypes.DEFAULT_T
                 status=subscription.status,
                 last_notified_at=subscription.last_notified_at,
                 now=now,
+                user_timezone=user.tz,
             )
         await session.flush()
         await record_audit_log(

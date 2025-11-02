@@ -112,6 +112,7 @@ async def create_subscription(
             status=subscription.status,
             last_notified_at=subscription.last_notified_at,
             now=now,
+            user_timezone=current_user.tz,
         )
     session.add(subscription)
     await session.flush()
@@ -201,14 +202,20 @@ async def _update_subscription(
     if "last_notified_at" in update_data:
         subscription.last_notified_at = update_data.get("last_notified_at")
 
-    if "next_reminder_at" in update_data:
-        subscription.next_reminder_at = update_data.get("next_reminder_at")
+    next_reminder_override = update_data.get("next_reminder_at", None)
+    if (
+        "next_reminder_at" in update_data
+        and next_reminder_override is not None
+        and next_reminder_override != subscription.next_reminder_at
+    ):
+        subscription.next_reminder_at = next_reminder_override
     else:
         subscription.next_reminder_at = calculate_next_reminder(
             end_at=subscription.end_at,
             status=subscription.status,
             last_notified_at=subscription.last_notified_at,
             now=now,
+            user_timezone=current_user.tz,
         )
 
     await session.flush()
@@ -251,11 +258,11 @@ async def snooze_subscription(
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Subscription:
-    """Postpone next reminder by one day."""
+    """Postpone next reminder by seven days."""
 
     subscription = await _get_subscription_or_404(session, subscription_id, current_user.id)
     now = current_time()
-    subscription.next_reminder_at = now + timedelta(days=1)
+    subscription.next_reminder_at = now + timedelta(days=7)
     await session.flush()
     await record_audit_log(
         session,
@@ -292,6 +299,7 @@ async def update_subscription_status(
         status=subscription.status,
         last_notified_at=subscription.last_notified_at,
         now=now,
+        user_timezone=current_user.tz,
     )
     await session.flush()
     await record_audit_log(
