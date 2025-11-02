@@ -202,8 +202,9 @@ async def _update_subscription(
     if "last_notified_at" in update_data:
         subscription.last_notified_at = update_data.get("last_notified_at")
 
-    if "next_reminder_at" in update_data:
-        subscription.next_reminder_at = update_data.get("next_reminder_at")
+    next_reminder_override = update_data.get("next_reminder_at", None)
+    if "next_reminder_at" in update_data and next_reminder_override is not None:
+        subscription.next_reminder_at = next_reminder_override
     else:
         subscription.next_reminder_at = calculate_next_reminder(
             end_at=subscription.end_at,
