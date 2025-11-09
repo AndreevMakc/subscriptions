@@ -126,13 +126,7 @@ async def _process_subscription_reminder(
 
     if delivery_status is NotificationStatus.sent:
         subscription.last_notified_at = now
-        subscription.next_reminder_at = calculate_next_reminder(
-            end_at=subscription.end_at,
-            status=subscription.status,
-            last_notified_at=subscription.last_notified_at,
-            now=now,
-            user_timezone=user.tz,
-        )
+        subscription.next_reminder_at = now + timedelta(days=1)
 
 
 async def _should_send_notification(

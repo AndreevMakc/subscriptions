@@ -7,6 +7,9 @@ from zoneinfo import ZoneInfo
 
 from app.models.subscription import Subscription, SubscriptionStatus
 
+REMINDER_WINDOW_DAYS = 7
+REMINDER_INTERVAL = timedelta(days=1)
+
 
 def current_time() -> datetime:
     """Return timezone-aware current time."""
@@ -66,17 +69,18 @@ def calculate_next_reminder(
     localized_now = now_utc.astimezone(tz)
     localized_end = end_at.astimezone(tz)
 
-    prewindow_start = localized_end - timedelta(days=7)
-    if localized_now < prewindow_start:
-        return prewindow_start.astimezone(timezone.utc)
-    if localized_end > localized_now >= prewindow_start:
+    window_start = localized_end - timedelta(days=REMINDER_WINDOW_DAYS)
+    if localized_now < window_start:
+        return window_start.astimezone(timezone.utc)
+
+    if last_notified_at is None:
+        # Окно напоминаний открыто, первое уведомление должно уйти немедленно.
         return localized_now.astimezone(timezone.utc)
 
-    reference = (last_notified_at.astimezone(tz) if last_notified_at else localized_end)
-    next_time = reference
-    while next_time <= localized_now:
-        next_time = next_time + timedelta(days=7)
-    return next_time.astimezone(timezone.utc)
+    reference = last_notified_at.astimezone(tz) + REMINDER_INTERVAL
+    while reference <= localized_now:
+        reference += REMINDER_INTERVAL
+    return reference.astimezone(timezone.utc)
 
 
 def apply_business_rules(
