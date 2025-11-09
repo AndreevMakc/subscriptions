@@ -21,11 +21,11 @@ export const shouldShowInReminders = (subscription: Subscription, settings: Sett
   if (status === 'archived' || status === 'canceled') return false
   if (!subscription.endAt) return false
 
-  if (subscription.nextReminderAt) {
-    return isReminderDue(subscription.nextReminderAt)
-  }
-
   if (isPast(subscription.endAt)) return true
+
+  if (subscription.nextReminderAt && isReminderDue(subscription.nextReminderAt)) {
+    return true
+  }
 
   return isDueSoonDate(subscription.endAt, settings.reminderDaysBefore)
 }

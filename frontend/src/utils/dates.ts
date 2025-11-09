@@ -43,7 +43,7 @@ export const isReminderDue = (isoDate?: string | null) => {
   return !isAfter(date, new Date())
 }
 
-export const createSnoozeDate = (days = 7) => addDays(new Date(), days).toISOString()
+export const createSnoozeDate = (days = 1) => addDays(new Date(), days).toISOString()
 
 export const toDateInputValue = (iso?: string | null) => {
   const date = parseDate(iso)

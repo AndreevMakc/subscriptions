@@ -258,11 +258,11 @@ async def snooze_subscription(
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Subscription:
-    """Postpone next reminder by seven days."""
+    """Postpone next reminder by one day."""
 
     subscription = await _get_subscription_or_404(session, subscription_id, current_user.id)
     now = current_time()
-    subscription.next_reminder_at = now + timedelta(days=7)
+    subscription.next_reminder_at = now + timedelta(days=1)
     await session.flush()
     await record_audit_log(
         session,
