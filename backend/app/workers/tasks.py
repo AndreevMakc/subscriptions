@@ -94,14 +94,18 @@ async def _process_subscription_reminder(
     account: TelegramAccount,
     now: datetime,
 ) -> None:
-    if not await _should_send_notification(session=session, subscription=subscription, now=now):
-        subscription.next_reminder_at = calculate_next_reminder(
-            end_at=subscription.end_at,
-            status=subscription.status,
-            last_notified_at=subscription.last_notified_at,
-            now=now,
-            user_timezone=user.tz,
-        )
+    should_send, last_sent_at = await _should_send_notification(session=session, subscription=subscription, now=now)
+    if not should_send:
+        if last_sent_at is not None:
+            subscription.next_reminder_at = last_sent_at + timedelta(days=1)
+        else:
+            subscription.next_reminder_at = calculate_next_reminder(
+                end_at=subscription.end_at,
+                status=subscription.status,
+                last_notified_at=subscription.last_notified_at,
+                now=now,
+                user_timezone=user.tz,
+            )
         return
 
     try:
@@ -131,7 +135,7 @@ async def _process_subscription_reminder(
 
 async def _should_send_notification(
     *, session: AsyncSession, subscription: Subscription, now: datetime
-) -> bool:
+) -> tuple[bool, datetime | None]:
     threshold = now - timedelta(hours=24)
     stmt = (
         select(Notification.sent_at)
@@ -146,5 +150,5 @@ async def _should_send_notification(
     result = await session.execute(stmt)
     last_sent = result.scalar_one_or_none()
     if last_sent is None:
-        return True
-    return last_sent <= threshold
+        return True, None
+    return last_sent <= threshold, last_sent
