@@ -5,6 +5,7 @@ import { SUPPORTED_CURRENCIES } from '../utils/constants'
 import { settingsSchema, type SettingsFormValues } from '../utils/validation'
 import { selectSettings, useStore } from '../store/useStore'
 import { useI18n } from '../i18n'
+import TelegramLinkCard from '../components/TelegramLinkCard'
 
 const SettingsPage = () => {
   const settings = useStore(selectSettings)
@@ -48,9 +49,10 @@ const SettingsPage = () => {
   })
 
   return (
-    <form onSubmit={onSubmit} className="glass-card flex flex-col gap-6 rounded-3xl p-6 shadow-card">
-      <p className="text-section accent-dot">{t('settings.title')}</p>
-      <div className="grid gap-4 md:grid-cols-2">
+    <div className="flex flex-col gap-6">
+      <form onSubmit={onSubmit} className="glass-card flex flex-col gap-6 rounded-3xl p-6 shadow-card">
+        <p className="text-section accent-dot">{t('settings.title')}</p>
+        <div className="grid gap-4 md:grid-cols-2">
         <label className="flex flex-col gap-1">
           <span className="text-xs uppercase tracking-[0.2em] text-midnight/50">{t('settings.locale')}</span>
           <select
@@ -116,25 +118,24 @@ const SettingsPage = () => {
           {errors.email ? <span className="text-xs text-rose-500">{errors.email.message}</span> : null}
         </label>
 
-        <label className="flex items-center gap-3 rounded-full border border-white/50 bg-white/70 px-4 py-2 text-sm">
-          <input type="checkbox" {...register('telegramLinked')} className="rounded focus-ring" />
-          <span className="text-midnight/70">{t('settings.telegram')}</span>
-        </label>
-      </div>
+        </div>
 
-      <div className="flex justify-end gap-3">
-        <button type="button" className="pill-button" onClick={() => reset(settings)}>
-          {t('settings.revert')}
-        </button>
-        <button
-          type="submit"
-          className="pill-button bg-accent text-white shadow-card hover:bg-accent/90"
-          disabled={!isDirty || isSubmitting}
-        >
-          {t('settings.save')}
-        </button>
-      </div>
-    </form>
+        <div className="flex justify-end gap-3">
+          <button type="button" className="pill-button" onClick={() => reset(settings)}>
+            {t('settings.revert')}
+          </button>
+          <button
+            type="submit"
+            className="pill-button bg-accent text-white shadow-card hover:bg-accent/90"
+            disabled={!isDirty || isSubmitting}
+          >
+            {t('settings.save')}
+          </button>
+        </div>
+      </form>
+
+      <TelegramLinkCard />
+    </div>
   )
 }
 

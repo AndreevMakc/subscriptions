@@ -16,6 +16,7 @@ from app.schemas.subscription import (
 from app.schemas.telegram import (
     TelegramLinkCompleteRequest,
     TelegramLinkCompleteResponse,
+    TelegramLinkStatusResponse,
     TelegramLinkTokenResponse,
 )
 from app.schemas.user import UserRead
@@ -33,6 +34,7 @@ __all__ = [
     "SubscriptionUpdate",
     "TelegramLinkCompleteRequest",
     "TelegramLinkCompleteResponse",
+    "TelegramLinkStatusResponse",
     "TelegramLinkTokenResponse",
     "TokenPair",
     "UserRead",

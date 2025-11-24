@@ -31,7 +31,6 @@ const createDefaultSettings = (): Settings => ({
   defaultCurrency: 'USD',
   reminderDaysBefore: 7,
   email: undefined,
-  telegramLinked: false,
 })
 
 export type SubscriptionDraft = Omit<Subscription, 'id' | 'createdAt' | 'updatedAt'>

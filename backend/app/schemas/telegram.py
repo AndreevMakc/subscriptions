@@ -31,3 +31,12 @@ class TelegramLinkCompleteResponse(BaseModel):
     is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TelegramLinkStatusResponse(BaseModel):
+    """Status payload describing whether Telegram is linked."""
+
+    is_linked: bool
+    linked_at: datetime | None
+    telegram_chat_id: int | None
+    bot_username: str | None

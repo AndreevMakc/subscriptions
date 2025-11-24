@@ -60,7 +60,6 @@ export const settingsSchema = z.object({
     .min(0, 'Reminder window must be positive')
     .max(60, 'Let’s keep it under 60 days'),
   email: optionalText,
-  telegramLinked: z.boolean().optional(),
 })
 
 export const persistedStateSchema = z.object({
