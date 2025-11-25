@@ -6,8 +6,8 @@ SERVICES ?= subscriptions-api.service subscriptions-beat.service subscriptions-w
 deploy:
 	cd $(DEPLOY_PATH) && \
 	git fetch origin && \
-	git checkout master && \
-	git pull --ff-only origin master && \
+	git checkout main && \
+	git pull --ff-only origin main && \
 	sudo -n systemctl restart $(SERVICES)
 
 status:
