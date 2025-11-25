@@ -1,4 +1,4 @@
-DEPLOY_PATH ?= /var/www/subscriptions
+DEPLOY_PATH ?= /opt/subscriptions
 SERVICES ?= subscriptions-api.service subscriptions-beat.service subscriptions-worker.service
 
 .PHONY: deploy status
