@@ -20,5 +20,5 @@ name: Deploy
             key: ${{ secrets.SSH_KEY }}
             port: ${{ secrets.SSH_PORT || 22 }}
             script: |
-              make -C /var/www/subscriptions deploy
-              make -C /var/www/subscriptions status
+              make -C /opt/subscriptions deploy
+              make -C /opt/subscriptions status
