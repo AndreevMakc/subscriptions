@@ -4,16 +4,18 @@ from __future__ import annotations
 from json import JSONDecodeError
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from telegram import Update
 
 from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.models.subscription import AuditAction
-from app.models.user import User
+from app.models.user import TelegramAccount, User
 from app.schemas.telegram import (
     TelegramLinkCompleteRequest,
     TelegramLinkCompleteResponse,
+    TelegramLinkStatusResponse,
     TelegramLinkTokenResponse,
 )
 from app.services.audit import record_audit_log
@@ -30,6 +32,28 @@ def _build_deep_link(token: str) -> str:
     if settings.telegram_bot_name:
         return f"https://t.me/{settings.telegram_bot_name}?start={token}"
     return f"{settings.base_url.rstrip('/')}/telegram/link?token={token}"
+
+
+@router.get("/status", response_model=TelegramLinkStatusResponse, summary="Get Telegram link status")
+async def read_link_status(
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TelegramLinkStatusResponse:
+    """Return information on whether Telegram is currently linked."""
+
+    result = await session.execute(
+        select(TelegramAccount)
+        .where(TelegramAccount.user_id == current_user.id)
+        .order_by(TelegramAccount.linked_at.desc())
+    )
+    account = result.scalars().first()
+    is_linked = bool(account and account.is_active)
+    return TelegramLinkStatusResponse(
+        is_linked=is_linked,
+        linked_at=account.linked_at if account else None,
+        telegram_chat_id=account.telegram_chat_id if account and account.is_active else None,
+        bot_username=settings.telegram_bot_name,
+    )
 
 
 @router.post("/link-token", response_model=TelegramLinkTokenResponse, summary="Generate Telegram link token")

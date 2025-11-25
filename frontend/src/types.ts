@@ -24,7 +24,6 @@ export interface Settings {
   defaultCurrency: Currency
   reminderDaysBefore: number
   email?: string
-  telegramLinked?: boolean
 }
 
 export interface User {
