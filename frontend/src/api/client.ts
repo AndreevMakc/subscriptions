@@ -1,6 +1,6 @@
 import { getStoredAccessToken } from '../utils/tokens'
 
-const DEFAULT_BASE_URL = 'https://subscriptions-vq0h.onrender.com'
+const DEFAULT_BASE_URL = 'https://api.all-subscriptions.ru'
 
 export class ApiError extends Error {
   status: number
