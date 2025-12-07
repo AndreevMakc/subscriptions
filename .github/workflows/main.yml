@@ -20,5 +20,6 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script: |
+            whoami
             make -C /opt/subscriptions deploy
             make -C /opt/subscriptions status
